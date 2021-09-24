@@ -1,0 +1,8 @@
+*.cmi
+*.cmo
+LEX.ml
+MENHIR.ml
+*.automaton
+*.conflicts
+miniOO
+*.mli
