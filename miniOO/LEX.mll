@@ -24,6 +24,7 @@ rule token = parse
   | ')'         { RPAREN }
   | '{'         { LBRAK }
   | '}'         { RBRAK }
+  | "proc"      { PROC }
   | "var"       { DECLARE }
   | "malloc"    { MALLOC }
   | "skip"      { SKIP }

@@ -7,38 +7,35 @@
 /* lexer tokens */
 %token EOL SEMICOLON ASSIGN MINUS DOT COLUMN EQUAL LESSTHAN
 %token LPAREN RPAREN LBRAK RBRAK DECLARE MALLOC SKIP
-%token WHILE IF ELSE PARALLEL ATOM
+%token WHILE IF ELSE PARALLEL ATOM PROC
 %token < string > VARIDT FIELDIDT
 %token < int > NUM
 %token < bool > BOOL
 %start prog                   /* the entry point */
 %type <unit> prog  
-%type <unit> cmds
 %type <unit> cmd
 %type <unit> assign
 %type <unit> expr
 %type <unit> slot
+%left COLUMN
 %left MINUS LESSTHAN EQUAL
 
 %% /* rules */
 
 prog :
-    cmds EOL  { () }
+    cmd EOL  { () }
 	
-cmds :
-    LBRAK cmd SEMICOLON cmds RBRAK  { () }
-  | LBRAK cmd PARALLEL cmds RBRAK   { () }
-  | cmd                             { () }
-  
 cmd :
     assign                        { () }
-  | expr                          { () }
-  | DECLARE VARIDT                { () }
+  | expr LPAREN expr RPAREN       { () }
+  | LBRAK cmd SEMICOLON cmd RBRAK { () }
+  | LBRAK cmd PARALLEL cmd RBRAK  { () }
+  | DECLARE VARIDT SEMICOLON cmd  { () }
   | MALLOC LPAREN VARIDT RPAREN   { () }
   | SKIP                          { () }
-  | WHILE expr cmds               { () }
-  | IF expr cmds ELSE cmds        { () }
-  | ATOM LPAREN cmds RPAREN       { () }
+  | WHILE BOOL cmd                { () }
+  | IF BOOL cmd ELSE cmd          { () }
+  | ATOM LPAREN cmd RPAREN        { () }
 
 slot :
     VARIDT              { () }
@@ -54,7 +51,6 @@ expr :
   | expr LESSTHAN expr                { () }
   | LPAREN expr RPAREN                { () }
   | NUM                               { () }
-  | BOOL                              { () }
-  | VARIDT COLUMN LPAREN cmds RPAREN  { () }
+  | PROC VARIDT COLUMN cmd            { () }
   
 %% (* trailer *)
