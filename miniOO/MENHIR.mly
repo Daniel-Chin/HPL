@@ -17,8 +17,9 @@
 %type <unit> assign
 %type <unit> expr
 %type <unit> slot
-%left COLUMN
-%left MINUS LESSTHAN EQUAL
+%left MINUS
+%left ASSIGN
+%left LESSTHAN EQUAL
 
 %% /* rules */
 
