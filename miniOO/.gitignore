@@ -6,3 +6,4 @@ MENHIR.ml
 *.conflicts
 miniOO
 *.mli
+*.pdf

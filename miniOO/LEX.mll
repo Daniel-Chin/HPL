@@ -11,6 +11,7 @@ rule token = parse
                 { FIELDIDT idt }
   | ['0'-'9']+ as num
                 { NUM (int_of_string num) }
+  | "null"      { NULL }
   | "true"      { BOOL (true) }
   | "false"     { BOOL (false) }
   | ';'         { SEMICOLON }
