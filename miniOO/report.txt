@@ -1,1 +1,2 @@
 Var IDT starts with uppercase while Field IDT starts with lowercase. 
+test association precedences. 
