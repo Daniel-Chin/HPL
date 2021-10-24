@@ -7,8 +7,10 @@ try
     try
       MENHIR.prog LEX.token lexbuf
     with Parse_error ->
-      (print_string "Syntax error ..." ; print_newline ()) ;
-    clear_parser ()
+      (
+        (print_string "Syntax error ..." ; print_newline ()) ;
+        clear_parser ()
+      )
   done
 with LEX.Eof ->
   ()

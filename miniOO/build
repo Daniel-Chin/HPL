@@ -1,0 +1,6 @@
+menhir MENHIR.mly
+ocamlc -c MENHIR.mli
+ocamlc -c LEX.ml
+ocamlc -c MENHIR.ml
+ocamlc -c miniOO.ml
+ocamlc -o miniOO LEX.cmo MENHIR.cmo miniOO.cmo
