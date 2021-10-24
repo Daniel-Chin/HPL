@@ -6,9 +6,9 @@ rule token = parse
     [' ' '\t']  { token lexbuf }
   | ['\n' ]     { EOL }
   | ['A'-'Z'] (['a'-'z'] | ['A'-'Z'] | ['0'-'9'])* as idt
-                { VARIDT idt }
+                { VARIDT (idt) }
   | ['a'-'z'] (['a'-'z'] | ['A'-'Z'] | ['0'-'9'])* as idt
-                { FIELDIDT idt }
+                { FIELDIDT (idt) }
   | ['0'-'9']+ as num
                 { NUM (int_of_string num) }
   | "null"      { NULL }

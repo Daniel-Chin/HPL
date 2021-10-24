@@ -1,16 +1,7 @@
 /* File MENHIR.mly */
 
 %{ (* header *)
-  type ast =
-    | Assign    of (ast    * ast)
-    | ProcCall  of (ast    * ast)
-    | FirstThen of (ast    * ast)
-    | Parallel  of (ast    * ast)
-    | DecVar    of (string * ast)
-    | Malloc    of (string)
-    | Skip
-    | WhileLoop of (unit)
-  ;;
+
 %} /* declarations */
 
 /* lexer tokens */
@@ -21,10 +12,10 @@
 %token < int > NUM
 %token < bool > BOOL
 %start prog                   /* the entry point */
-%type <unit> prog  
-%type <unit> cmd
-%type <unit> expr
-%type <unit> bool
+%type <Types.ast> prog  
+%type <Types.ast> cmd
+%type <Types.ast> expr
+%type <Types.ast> bool
 %left ASSIGN
 %left MINUS
 %left DOT
@@ -32,33 +23,33 @@
 %% /* rules */
 
 prog :
-    cmd EOL  { () }
+    c = cmd EOL  { c }
 
 cmd :
-    DECLARE VARIDT SEMICOLON cmd  { () }
-  | expr LPAREN expr RPAREN       { () }
-  | MALLOC LPAREN VARIDT RPAREN   { () }
-  | VARIDT ASSIGN expr            { () }
-  | expr DOT expr ASSIGN expr     { () }
-  | SKIP                          { () }
-  | LBRAK cmd SEMICOLON cmd RBRAK { () }
-  | WHILE bool cmd                { () }
-  | IF bool cmd ELSE cmd          { () }
-  | LBRAK cmd PARALLEL cmd RBRAK  { () }
-  | ATOM LPAREN cmd RPAREN        { () }
+    DECLARE v = VARIDT SEMICOLON c = cmd     { DecVar((v, c)) }
+  | p = expr LPAREN a = expr RPAREN          { ProcCall((p, a)) }
+  | MALLOC LPAREN v = VARIDT RPAREN          { Malloc(v) }
+  | v = VARIDT ASSIGN e = expr               { VarAssign((v, e)) }
+  | o = expr DOT f = expr ASSIGN e = expr    { FieldAssign((o, f, e)) }
+  | SKIP                                     { Skip }
+  | LBRAK c1 = cmd SEMICOLON c2 = cmd RBRAK  { FirstThen((c1, c2)) }
+  | WHILE b = bool c = cmd                   { WhileLoop((b, c)) }
+  | IF b = bool t = cmd ELSE e = cmd         { IfThenElse((b, t, e)) }
+  | LBRAK c1 = cmd PARALLEL c2 = cmd RBRAK   { Parallel((c1, c2)) }
+  | ATOM LPAREN c = cmd RPAREN               { Atomic(c) }
 
 expr :
-    FIELDIDT                          { () }
-  | NUM                               { () }
-  | expr MINUS expr                   { () }
-  | NULL                              { () }
-  | VARIDT                            { () }
-  | expr DOT expr                     { () }
-  | PROC VARIDT COLUMN cmd            { () }
+    f = FIELDIDT                    { FieldIdt(f) }
+  | n = NUM                         { LiteralNum(n) }
+  | e1 = expr MINUS e2 = expr       { Minus((e1, e2)) }
+  | NULL                            { Null }
+  | v = VARIDT                      { VarIdt(v) }
+  | e1 = expr DOT e2 = expr         { FieldSeek((e1, e2)) }
+  | PROC v = VARIDT COLUMN c = cmd  { ProcDef((v, c)) }
 
 bool :
-    BOOL                              { () }
-  | expr EQUAL expr                   { () }
-  | expr LESSTHAN expr                { () }
+    b = BOOL                      { LiteralBool(b) }
+  | e1 = expr EQUAL e2 = expr     { IsEqual((e1, e2)) }
+  | e1 = expr LESSTHAN e2 = expr  { IsLessThan((e1, e2)) }
 
 %% (* trailer *)
