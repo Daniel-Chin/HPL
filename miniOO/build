@@ -1,3 +1,4 @@
+ocamllex LEX.mll
 menhir MENHIR.mly
 ocamlc -c MENHIR.mli
 ocamlc -c LEX.ml
