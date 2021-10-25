@@ -282,27 +282,25 @@ type value =
 | FieldValue of string
 | IntValue of int
 | LocationValue of location
-| Closure of { var : int; cmd : ast; stack : stack }
+| Closure of {var_id : int; cmd : ast; stack : stack}
 and frame = | DeclFrame of (int * int) | CallFrame of ((int * int) * stack)
 and stack = | Stack of frame list
 and taintedValue = | ValError | TaintMissed of value
 ;;
-type configuration = 
-| Config of (ast * stack * frame)
-| Halted of (stack * frame)
-| ConfigError of (string * (ast * stack * frame))
-;;
-
-let theNull = TaintMissed(LocationValue(ObjectId(-1)));;
-
 module AnObject = Map.Make(String);;
-
-exception OutOfHeapDom;;
-
 type heapRow = 
 | JustVal of taintedValue
 | Everything of (taintedValue AnObject.t)
 ;;
+type configuration = 
+| Config of (ast * stack * (heapRow list))
+| Halted of (stack * (heapRow list))
+| ConfigError of (string * (ast * stack * (heapRow list)))
+;;
+
+let theNull = TaintMissed(LocationValue(ObjectId(-1)));;
+
+exception OutOfHeapDom;;
 
 let heapGet heap obj_id field_idt = 
   match List.nth heap obj_id with
@@ -317,7 +315,7 @@ let heapGet heap obj_id field_idt =
 ;;
 
 let heapSet heap obj_id field_idt tva = 
-let helper obj_id_acc field_idt tva = (
+let rec helper obj_id_acc field_idt tva = (
   function
   | [] -> []
   | h :: t -> (
@@ -344,8 +342,8 @@ let heapGrow heap is_malloc = (
 );;
 
 let rec stackGet var_id = function
-| Stack(stk) -> (
-  match stk with
+| Stack(lst_stack) -> (
+  match lst_stack with
   | [] -> -99   (* Impossible *)
   | h :: t -> let helper (frame_var_id, frame_obj_id) = (
     if frame_var_id = var_id then frame_obj_id 
@@ -403,7 +401,7 @@ let rec eval stack heap = function
     )
 )
 | ProcDef(VarAnnotation(_, id), cmd) -> (
-  TaintMissed(Closure({var = id; cmd = cmd; stack = stack}))
+  TaintMissed(Closure({var_id = id; cmd = cmd; stack = stack}))
 )
 | _ -> ValError   (* Impossible *)
 ;;
@@ -433,7 +431,7 @@ let helper = function
       )
       | Closure(clo_a) -> (
         match value_b with 
-        | Closure(clo_b) -> Some (clo_a = clo_b)
+        | Closure(clo_b) -> Some (value_a = value_b)
         | _ -> None
       )
       | _ -> None
@@ -459,6 +457,7 @@ let helper = function
     )
   )
 )
+| _ -> failwith "Error 5028743087"  (* Impossible, thanks to parser*)
 in match helper expr with
 | Some true -> True
 | Some false -> False
@@ -479,9 +478,10 @@ let rec crank = function
   match ctrl with 
   | DecVar(VarAnnotation(_, var_id), cmd) -> (
     let obj_id = getNewObjId () in
-    Config(
+    match stack with
+    | Stack(lst_stack) -> Config(
       Block(cmd), 
-      DeclFrame(var_id, obj_id) :: stack, 
+      Stack(DeclFrame(var_id, obj_id) :: lst_stack), 
       heapGrow heap false
     )
   )
@@ -493,9 +493,12 @@ let rec crank = function
     )
     | Halted(stack_p, heap_p) -> Halted((
       match stack_p with
-      | [] -> failwith "Impossible to reach 26004978165"
-      | DeclFrame(_) :: t -> t
-      | CallFrame(_, stashedStack) :: _ -> stashedStack
+      | Stack(lst_stack) -> (
+        match lst_stack with
+        | [] -> failwith "Impossible to reach 26004978165"
+        | DeclFrame(_) :: t -> Stack(t)
+        | CallFrame(_, stashedStack) :: _ -> stashedStack
+      )
     ), heap_p)
   )
   | ProcCall(proc, arg) -> (
@@ -505,11 +508,12 @@ let rec crank = function
       | ValError -> ConfigError("Calling `error` as proc", (ctrl, stack, heap))
       | TaintMissed(value) -> (
         match value with
-        | Closure({var = var; cmd = cmd; stack = defStack}) -> (
+        | Closure({var_id = var_id; cmd = cmd; stack = defStack}) -> (
           let obj_id = getNewObjId () in
-          Config(
+          match defStack with
+          | Stack(lst_stack) -> Config(
             Block(cmd), 
-            CallFrame((var_id, obj_id), stack) :: defStack, 
+            Stack(CallFrame((var_id, obj_id), stack) :: lst_stack), 
             heapSet (heapGrow heap false) obj_id "val" tva_arg
           )
         )
@@ -523,7 +527,7 @@ let rec crank = function
     | TaintMissed(value) -> (
       let obj_id = stackGet var_id stack in Halted(
         stack, 
-        heapSet heap obj_id "val" TaintMissed(value)
+        heapSet heap obj_id "val" (TaintMissed(value))
       )
     )
   )
@@ -540,10 +544,12 @@ let rec crank = function
           match value_l with
           | LocationValue(ObjectId(obj_id)) -> (
             match value_f with
-            | FieldValue(field_idt) -> Halted(
-              stack, 
+            | FieldValue(field_idt) -> (
               try
-                heapSet heap obj_id field_idt tva_e
+                Halted(
+                  stack, 
+                  heapSet heap obj_id field_idt tva_e
+                )
               with OutOfHeapDom -> ConfigError("Field assignment out of heap domain", (ctrl, stack, heap))
             )
             | _ -> ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap))
@@ -559,7 +565,7 @@ let rec crank = function
     ) "val" (TaintMissed(LocationValue(ObjectId(obj_id)))) in
     Halted(
       stack, 
-      heapGrow heap true
+      heapGrow heap_p true
     )
   )
   | Skip -> Halted(stack, heap)
@@ -598,12 +604,12 @@ let rec crank = function
     else helper cmd2 cmd1
   )
   | Atomic(cmd) -> (
-    let helper cmd_x stack_x heap_x = (
+    let rec helper cmd_x stack_x heap_x = (
       match crank (Config(cmd_x, stack_x, heap_x)) with
       | ConfigError(x) -> ConfigError(x)
       | Config(cmd_p, stack_p, heap_p) -> helper cmd_p stack_p heap_p
       | Halted(stack_p, heap_p) -> Halted(stack_p, heap_p)
-    )
+    ) in helper cmd stack heap
   )
   | _ -> failwith "Error 2375098742307"   (* Impossible, thanks to parser *)
 );;
