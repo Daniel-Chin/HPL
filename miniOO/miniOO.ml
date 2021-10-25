@@ -466,7 +466,8 @@ let rec crank = function
     | Halted(stack_p, heap_p) -> Halted((
       match stack_p with
       | [] -> failwith "Impossible to reach 26004978165"
-      | _ :: t -> t
+      | DeclFrame(_) :: t -> t
+      | CallFrame(_, stashedStack) :: _ -> stashedStack
     ), heap_p)
   )
   | ProcCall(proc, arg) -> (
@@ -488,7 +489,8 @@ let rec crank = function
       )
     )
   )
-  | Malloc(var_annotation) -> (
+  | Malloc(VarAnnotation(_, var_id)) -> (
+
   )
   | VarAssign(var_annotation, expr) -> (
   )
