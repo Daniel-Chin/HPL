@@ -97,10 +97,10 @@ let rec prettyPrint depth =
       print_string "atomic \n"; 
       prettyPrint (depth + 1) cmd
     )
-    | FieldIdt(filed_idt) -> (
+    | FieldIdt(field_idt) -> (
       indent ();
       print_string "field identifier ["; 
-      print_string filed_idt; 
+      print_string field_idt; 
       print_string "] \n"
     )
     | LiteralNum(x) -> (
@@ -246,7 +246,7 @@ let rec annotate namespace = function
     | Atomic(cmd) -> Atomic(
       annotate namespace cmd
     )
-    | FieldIdt(filed_idt) -> FieldIdt(filed_idt)
+    | FieldIdt(field_idt) -> FieldIdt(field_idt)
     | LiteralNum(x) -> LiteralNum(x)
     | Minus(expr1, expr2) -> Minus(
       annotate namespace expr1, 
@@ -288,13 +288,85 @@ let rec annotate namespace = function
 type boolean = | True | False | BoolError;;
 type location = | ObjectId of int;;  (* -1 means null *);;
 type value = 
-| FieldIdt of string
+| FieldValue of string
 | IntValue of int
 | LocationValue of location
 | Closure of { var : int; cmd : ast; stack : stack }
-and frame = | DeclFrame of int | CallFrame of (int * stack)
+and frame = | DeclFrame of (int * int) | CallFrame of ((int * int) * stack)
 and stack = | Stack of frame list
 and taintedValue = | ValError | TaintMissed of value
+;;
+
+module AnObject = Map.Make(String);;
+
+let theNull = TaintMissed(LocationValue(ObjectId(-1)));;
+
+let heapGet heap obj_id field_idt = 
+  AnObject.find field_idt (List.nth heap obj_id)
+;;
+
+let rec stackGet var_id = function
+| Stack(stk) -> (
+  match stk with
+  | [] -> -99   (* Impossible *)
+  | h :: t -> let helper (frame_var_id, frame_obj_id) = (
+    if frame_var_id = var_id then frame_obj_id 
+    else stackGet var_id (Stack(t))
+  ) in (
+    match h with
+    | DeclFrame(binding) -> helper binding
+    | CallFrame(binding, _) -> helper binding
+  )
+)
+
+let rec eval stack heap = function
+| FieldIdt(field_idt) -> TaintMissed(FieldValue(field_idt))
+| LiteralNum(x) -> TaintMissed(IntValue(x))
+| Minus(a, b) -> (
+  match eval stack heap a with 
+  | ValError -> ValError
+  | TaintMissed(value) -> match value with
+    | IntValue(int_a) -> (
+      match eval stack heap b with 
+      | ValError -> ValError
+      | TaintMissed(value) -> match value with
+        | IntValue(int_b) -> TaintMissed(IntValue(int_a - int_b))
+        | _ -> ValError
+    )
+    | _ -> ValError
+)
+| Null -> theNull
+| VarIdt(VarAnnotation(_, id)) -> (
+  heapGet heap (stackGet id stack) ""
+)
+| FieldSeek(a, b) -> (
+  let tva_l = eval stack heap a
+  and tva_f = eval stack heap b in
+    match tva_l with
+    | ValError -> ValError  (* impossible *)
+    | TaintMissed(value) -> (
+      match value with
+      | LocationValue(location) -> (
+        match location with
+        | ObjectId(obj_id) -> (
+          if obj_id != -1 then (
+            match tva_f with
+              | ValError -> ValError  (* impossible *)
+              | TaintMissed(value) -> match value with
+                | FieldValue(field_idt) -> (
+                  heapGet heap obj_id field_idt
+                )
+                | _ -> ValError
+          ) else ValError
+        )
+      )
+      | _ -> ValError
+    )
+)
+| ProcDef(VarAnnotation(_, id), cmd) -> (
+  TaintMissed(Closure({var = id; cmd = cmd; stack = stack}))
+)
+| _ -> ValError   (* Impossible *)
 ;;
 
 let lexbuf = Lexing.from_channel stdin in
