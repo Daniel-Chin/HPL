@@ -5,6 +5,10 @@ Specialties:
 tricks
     "val" field implemented as empty string field_name
     location is object id
+        -1 means null
     var_name is replaced with var_id
     env is var_id -> object id
+    States and Configurations are not explicitly represented - they are implicit in the ocaml-based interpreter state. 
+    Control is represented as a node in the AST. 
+    Heap is a list of maps. The list index is the object id. Maps are field_name -> tva. 
 test association precedences. 

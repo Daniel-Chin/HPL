@@ -47,7 +47,7 @@ let rec prettyPrint depth =
       print_string "first \n"; 
       prettyPrint (depth + 1) cmd1;
       indent ();
-      print_string "then \n"; 
+      print_string "and then \n"; 
       prettyPrint (depth + 1) cmd2
     )
     | FieldAssign(obj, field, expr) -> (
@@ -164,6 +164,11 @@ let rec prettyPrint depth =
       print_string "is less than \n";
       prettyPrint (depth + 1) expr2
     )
+    | Block(cmd) -> (
+      indent ();
+      print_string "BLOCK \n";
+      prettyPrint (depth + 1) cmd
+    )
 ;;
 
 exception UsingUndeclaredVariable of string;;
@@ -277,6 +282,19 @@ let rec annotate namespace = function
       annotate namespace expr1, 
       annotate namespace expr2
     )
+    | Block(_) -> failwith "Cannot annotate Block"
+;;
+
+type boolean = | True | False | BoolError;;
+type location = | ObjectId of int;;  (* -1 means null *);;
+type value = 
+| FieldIdt of string
+| IntValue of int
+| LocationValue of location
+| Closure of { var : int; cmd : ast; stack : stack }
+and frame = | DeclFrame of int | CallFrame of (int * stack)
+and stack = | Stack of frame list
+and taintedValue = | ValError | TaintMissed of value
 ;;
 
 let lexbuf = Lexing.from_channel stdin in

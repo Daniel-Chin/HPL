@@ -24,4 +24,5 @@ type ast =
 | LiteralBool of (bool)
 | IsEqual     of (ast * ast)
 | IsLessThan  of (ast * ast)
+| Block       of (ast)
 ;;
