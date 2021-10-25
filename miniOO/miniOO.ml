@@ -173,11 +173,9 @@ try
 with 
   | LEX.Eof -> ()
   | e -> (
-    print_string "Maybe? lexbuf is at line # ";
-    print_int lexbuf.lex_curr_p.pos_lnum;
-    print_string ", col ";
-    print_int lexbuf.lex_curr_p.pos_bol;
-    print_string " ? \n";
+    print_string "lexbuf is at ";
+    print_int lexbuf.lex_curr_pos;
+    print_string "\n";
     raise e
   )
 ;;
