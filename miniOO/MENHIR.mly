@@ -26,10 +26,10 @@ prog :
     c = cmd THE_END  { c }
 
 cmd :
-    DECLARE v = VARIDT SEMICOLON c = cmd     { DecVar((v, c)) }
+    DECLARE v = VARIDT SEMICOLON c = cmd     { DecVar((Types.VarAnnotation(v, -1), c)) }
   | p = expr LPAREN a = expr RPAREN          { ProcCall((p, a)) }
-  | MALLOC LPAREN v = VARIDT RPAREN          { Malloc(v) }
-  | v = VARIDT ASSIGN e = expr               { VarAssign((v, e)) }
+  | MALLOC LPAREN v = VARIDT RPAREN          { Malloc(Types.VarAnnotation(v, -1)) }
+  | v = VARIDT ASSIGN e = expr               { VarAssign((Types.VarAnnotation(v, -1), e)) }
   | o = expr DOT f = expr ASSIGN e = expr    { FieldAssign((o, f, e)) }
   | SKIP                                     { Skip }
   | LBRAK c1 = cmd SEMICOLON c2 = cmd RBRAK  { FirstThen((c1, c2)) }
@@ -43,9 +43,9 @@ expr :
   | n = NUM                         { LiteralNum(n) }
   | e1 = expr MINUS e2 = expr       { Minus((e1, e2)) }
   | NULL                            { Null }
-  | v = VARIDT                      { VarIdt(v) }
+  | v = VARIDT                      { VarIdt(Types.VarAnnotation(v, -1)) }
   | e1 = expr DOT e2 = expr         { FieldSeek((e1, e2)) }
-  | PROC v = VARIDT COLUMN c = cmd  { ProcDef((v, c)) }
+  | PROC v = VARIDT COLUMN c = cmd  { ProcDef((Types.VarAnnotation(v, -1), c)) }
 
 bool :
     b = BOOL                      { LiteralBool(b) }

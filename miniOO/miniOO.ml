@@ -5,12 +5,20 @@ open Types;;
 let rec prettyPrint depth = 
   let indent () = print_string (
     String.make depth ' '
-  ) in function
-    | DecVar(var_idt, cmd) -> (
+  ) and printVarAnnotation = function
+    | VarAnnotation(name, id) -> (
+      print_string "<";
+      print_string name;
+      print_string " (";
+      print_int id;
+      print_string ")>"
+    )
+  in function
+    | DecVar(var_annotation, cmd) -> (
       indent ();
-      print_string "declare var <"; 
-      print_string var_idt; 
-      print_string "> in \n"; 
+      print_string "declare var "; 
+      printVarAnnotation var_annotation; 
+      print_string " in \n"; 
       prettyPrint (depth + 1) cmd
     )
     | ProcCall(proc, arg) -> (
@@ -21,17 +29,17 @@ let rec prettyPrint depth =
       print_string "with argument \n"; 
       prettyPrint (depth + 1) arg
     )
-    | Malloc(var_idt) -> (
+    | Malloc(var_annotation) -> (
       indent ();
-      print_string "malloc <"; 
-      print_string var_idt; 
-      print_string "> \n"
+      print_string "malloc "; 
+      printVarAnnotation var_annotation; 
+      print_string " \n"
     )
-    | VarAssign(var_idt, expr) -> (
+    | VarAssign(var_annotation, expr) -> (
       indent ();
-      print_string "assign to var <"; 
-      print_string var_idt; 
-      print_string "> = \n"; 
+      print_string "assign to var "; 
+      printVarAnnotation var_annotation; 
+      print_string " = \n"; 
       prettyPrint (depth + 1) expr
     )
     | FirstThen(cmd1, cmd2) -> (
@@ -113,11 +121,11 @@ let rec prettyPrint depth =
       indent ();
       print_string "null \n"
     )
-    | VarIdt(var_idt) -> (
+    | VarIdt(var_annotation) -> (
       indent ();
-      print_string "var identifier <"; 
-      print_string var_idt; 
-      print_string "> \n"
+      print_string "var identifier "; 
+      printVarAnnotation var_annotation; 
+      print_string " \n"
     )
     | FieldSeek(obj, field) -> (
       indent ();
@@ -127,11 +135,11 @@ let rec prettyPrint depth =
       print_string "the field \n"; 
       prettyPrint (depth + 1) field
     )
-    | ProcDef(arg_name, cmd) -> (
+    | ProcDef(var_annotation, cmd) -> (
       indent ();
-      print_string "proc taking <"; 
-      print_string arg_name; 
-      print_string "> that does \n"; 
+      print_string "proc taking "; 
+      printVarAnnotation var_annotation; 
+      print_string " that does \n"; 
       prettyPrint (depth + 1) cmd
     )
     | LiteralBool(x) -> (

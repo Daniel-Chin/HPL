@@ -5,5 +5,5 @@ MENHIR.ml
 *.automaton
 *.conflicts
 miniOO
-*.mli
+MENHIR.mli
 *.pdf

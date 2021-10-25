@@ -1,4 +1,6 @@
 set -e
+
+ocamlc -c Types.mli
 ocamllex LEX.mll
 menhir MENHIR.mly
 ocamlc -c MENHIR.mli

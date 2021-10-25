@@ -1,4 +1,10 @@
 Specialties:
     Var IDT starts with uppercase while Field IDT starts with lowercase. 
     ignores \n. THE_END
+    no library importing
+tricks
+    "val" field implemented as empty string field_name
+    location is object id
+    var_name is replaced with var_id
+    env is var_id -> object id
 test association precedences. 

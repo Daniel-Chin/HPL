@@ -1,8 +1,10 @@
+type varAnnotation = | VarAnnotation of (string * int);;
+
 type ast =
-| DecVar      of (string * ast)
+| DecVar      of (varAnnotation * ast)
 | ProcCall    of (ast * ast)
-| Malloc      of (string)
-| VarAssign   of (string * ast)
+| Malloc      of (varAnnotation)
+| VarAssign   of (varAnnotation * ast)
 | FieldAssign of (ast * ast * ast)
 | Skip
 | FirstThen   of (ast * ast)
@@ -15,9 +17,9 @@ type ast =
 | LiteralNum  of (int)
 | Minus       of (ast * ast)
 | Null
-| VarIdt      of (string)
+| VarIdt      of (varAnnotation)
 | FieldSeek   of (ast * ast)
-| ProcDef     of (string * ast)
+| ProcDef     of (varAnnotation * ast)
 
 | LiteralBool of (bool)
 | IsEqual     of (ast * ast)
