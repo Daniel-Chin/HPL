@@ -14,7 +14,7 @@ var X; var Y;
     {
       A = 0;
       {
-        F = proc T : {A = A + 1; if T == 0 skip else proc T - 1};
+        F = proc T : {A = A - 1; if T == 0 skip else F(T - 1)};
         F(5)
       }
     }

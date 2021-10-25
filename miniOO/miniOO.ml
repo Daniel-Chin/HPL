@@ -15,7 +15,7 @@ let rec prettyPrint depth =
     )
     | ProcCall(proc, arg) -> (
       indent ();
-      print_string "calling proc \n"; 
+      print_string "call proc \n"; 
       prettyPrint (depth + 1) proc;
       indent ();
       print_string "with argument \n"; 
@@ -158,8 +158,8 @@ let rec prettyPrint depth =
     )
 ;;
 
+let lexbuf = Lexing.from_channel stdin in
 try
-  let lexbuf = Lexing.from_channel stdin in
   while true do
     try
       let theAst = MENHIR.prog LEX.token lexbuf in 
@@ -170,6 +170,14 @@ try
         clear_parser ()
       )
   done
-with LEX.Eof ->
-  ()
+with 
+  | LEX.Eof -> ()
+  | e -> (
+    print_string "Maybe? lexbuf is at line # ";
+    print_int lexbuf.lex_curr_p.pos_lnum;
+    print_string ", col ";
+    print_int lexbuf.lex_curr_p.pos_bol;
+    print_string " ? \n";
+    raise e
+  )
 ;;

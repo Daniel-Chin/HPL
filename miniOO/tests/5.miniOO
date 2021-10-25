@@ -1,0 +1,2 @@
+if T == 0 skip else Proc(T - 1)
+THE_END

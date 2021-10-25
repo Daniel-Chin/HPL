@@ -1,6 +1,7 @@
 {
 open MENHIR;; (* Type token defined in MENHIR.mli *)
 exception Eof;;
+exception DanielLexError;;
 }
 rule token = parse
     [' ' '\t' '\n'] 
@@ -35,4 +36,10 @@ rule token = parse
   | ')'         { RPAREN }
   | '{'         { LBRAK }
   | '}'         { RBRAK }
+  | _ as c      {
+                  print_string "Not a lexem: \""; 
+                  print_char c; 
+                  print_string "\" \n";
+                  raise DanielLexError 
+                }
   | eof         { raise Eof }
