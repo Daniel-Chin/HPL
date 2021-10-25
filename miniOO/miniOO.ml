@@ -354,7 +354,7 @@ let rec eval stack heap = function
   let tva_l = eval stack heap a
   and tva_f = eval stack heap b in
     match tva_l with
-    | ValError -> ValError  (* impossible *)
+    | ValError -> ValError
     | TaintMissed(value) -> (
       match value with
       | LocationValue(location) -> (
@@ -362,7 +362,7 @@ let rec eval stack heap = function
         | ObjectId(obj_id) -> (
           if obj_id != -1 then (
             match tva_f with
-              | ValError -> ValError  (* impossible *)
+              | ValError -> ValError
               | TaintMissed(value) -> match value with
                 | FieldValue(field_idt) -> (
                   heapGet heap obj_id field_idt
@@ -492,11 +492,40 @@ let rec crank = function
   | Malloc(VarAnnotation(_, var_id)) -> (
 
   )
-  | VarAssign(var_annotation, expr) -> (
-  )
-  | FirstThen(cmd1, cmd2) -> (
+  | VarAssign(VarAnnotation(_, var_id), expr) -> (
+    match eval stack heap expr with
+    | ValError -> ConfigError("Cannot assign `error` to variable", (ctrl, stack, heap))
+    | TaintMissed(value) -> (
+      let obj_id = stackGet var_id stack in Halted(
+        stack, 
+        heapSet heap obj_id "" TaintMissed(value)
+      )
+    )
   )
   | FieldAssign(obj, field, expr) -> (
+    let tva_l = eval stack heap obj
+    and tva_f = eval stack heap field
+    and tva_e = eval stack heap expr in 
+      match tva_l with
+      | ValError -> ConfigError("During field assignment, the l.h.s. of the dot is `error`", (ctrl, stack, heap))
+      | TaintMissed(value_l) -> (
+        match tva_f with
+        | ValError -> ConfigError("During field assignment, the r.h.s. of the dot is `error`", (ctrl, stack, heap))
+        | TaintMissed(value_f) -> (
+          match value_l with
+          | LocationValue(ObjectId(obj_id)) -> (
+            match value_f with
+            | FieldValue(field_idt) -> Halted(
+              stack, 
+              heapSet heap obj_id field_idt tva_e
+            )
+            | _ -> ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap))
+          )
+          | _ -> ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap))
+        )
+      )
+  )
+  | FirstThen(cmd1, cmd2) -> (
   )
   | Skip -> Skip
   | WhileLoop(condition, cmd) -> (
