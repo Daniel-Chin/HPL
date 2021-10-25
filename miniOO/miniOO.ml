@@ -190,35 +190,29 @@ let declare key namespace = let new_id = getNewId () in (
 );;
 
 let rec annotate namespace = function 
-    | DecVar(var_annotation, cmd) -> (match var_annotation with
-      | VarAnnotation(name, _) -> (
-        let new_namespace, new_id = declare name namespace in
-        DecVar(
-          VarAnnotation(name, new_id), 
-          annotate new_namespace cmd
-        )
+    | DecVar(VarAnnotation(name, _), cmd) -> (
+      let new_namespace, new_id = declare name namespace in
+      DecVar(
+        VarAnnotation(name, new_id), 
+        annotate new_namespace cmd
       )
     )
     | ProcCall(proc, arg) -> ProcCall(
       annotate namespace proc, 
       annotate namespace arg
     )
-    | Malloc(var_annotation) -> (match var_annotation with
-      | VarAnnotation(name, _) -> (
-        match namespace name with
-          | None -> raise (UsingUndeclaredVariable name)
-          | Some id -> Malloc(VarAnnotation(name, id))
-      )
+    | Malloc(VarAnnotation(name, _)) -> (
+      match namespace name with
+        | None -> raise (UsingUndeclaredVariable name)
+        | Some id -> Malloc(VarAnnotation(name, id))
     )
-    | VarAssign(var_annotation, expr) -> (match var_annotation with
-      | VarAnnotation(name, _) -> (
-        match namespace name with
-          | None -> raise (UsingUndeclaredVariable name)
-          | Some id -> VarAssign(
-            VarAnnotation(name, id), 
-            annotate namespace expr
-          )
-      )
+    | VarAssign(VarAnnotation(name, _), expr) -> (
+      match namespace name with
+        | None -> raise (UsingUndeclaredVariable name)
+        | Some id -> VarAssign(
+          VarAnnotation(name, id), 
+          annotate namespace expr
+        )
     )
     | FirstThen(cmd1, cmd2) -> FirstThen(
       annotate namespace cmd1, 
@@ -253,24 +247,20 @@ let rec annotate namespace = function
       annotate namespace expr2
     )
     | Null -> Null
-    | VarIdt(var_annotation) -> (match var_annotation with
-      | VarAnnotation(name, _) -> (
-        match namespace name with
-          | None -> raise (UsingUndeclaredVariable name)
-          | Some id -> VarIdt(VarAnnotation(name, id))
-      )
+    | VarIdt(VarAnnotation(name, _)) -> (
+      match namespace name with
+        | None -> raise (UsingUndeclaredVariable name)
+        | Some id -> VarIdt(VarAnnotation(name, id))
     )
     | FieldSeek(obj, field) -> FieldSeek(
       annotate namespace obj, 
       annotate namespace field
     )
-    | ProcDef(var_annotation, cmd) -> (match var_annotation with
-      | VarAnnotation(name, _) -> (
-        let new_namespace, new_id = declare name namespace in
-        ProcDef(
-          VarAnnotation(name, new_id), 
-          annotate new_namespace cmd
-        )
+    | ProcDef(VarAnnotation(name, _), cmd) -> (
+      let new_namespace, new_id = declare name namespace in
+      ProcDef(
+        VarAnnotation(name, new_id), 
+        annotate new_namespace cmd
       )
     )
     | LiteralBool(x) -> LiteralBool(x)
@@ -295,6 +285,10 @@ type value =
 and frame = | DeclFrame of (int * int) | CallFrame of ((int * int) * stack)
 and stack = | Stack of frame list
 and taintedValue = | ValError | TaintMissed of value
+type configuration = 
+| Config of (ast * stack * frame)
+| Halted of (stack * frame)
+| ConfigError
 ;;
 
 module AnObject = Map.Make(String);;
@@ -368,6 +362,51 @@ let rec eval stack heap = function
 )
 | _ -> ValError   (* Impossible *)
 ;;
+
+let rec crank = function
+| ConfigError -> failwith "ERROR 327169437652"
+| Halted -> failwith "Cannot crank a halted config."
+| configuration(ctrl, stack, heap) -> (
+  match ctrl with 
+  | DecVar(var_annotation, cmd) -> (
+  )
+  | ProcCall(proc, arg) -> (
+  )
+  | Malloc(var_annotation) -> (
+  )
+  | VarAssign(var_annotation, expr) -> (
+  )
+  | FirstThen(cmd1, cmd2) -> (
+  )
+  | FieldAssign(obj, field, expr) -> (
+  )
+  | Skip -> Skip
+  | WhileLoop(condition, cmd) -> (
+  )
+  | IfThenElse(condition, thenClause, elseClause) -> (
+  )
+  | Parallel(cmd1, cmd2) -> (
+  )
+  | Atomic(cmd) -> (
+  )
+  | FieldIdt(field_idt) -> ()
+  | LiteralNum(x) -> ()
+  | Minus(expr1, expr2) -> (
+  )
+  | Null -> Null
+  | VarIdt(var_annotation) -> (
+  )
+  | FieldSeek(obj, field) -> (
+  )
+  | ProcDef(var_annotation, cmd) -> (
+  )
+  | LiteralBool(x) -> ()
+  | IsEqual(expr1, expr2) -> (
+  )
+  | IsLessThan(expr1, expr2) -> (
+  )
+  | Block(_) -> ()
+)
 
 let lexbuf = Lexing.from_channel stdin in
 try
