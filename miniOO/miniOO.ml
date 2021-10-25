@@ -286,20 +286,34 @@ type value =
 and frame = | DeclFrame of (int * int) | CallFrame of ((int * int) * stack)
 and stack = | Stack of frame list
 and taintedValue = | ValError | TaintMissed of value
+;;
 type configuration = 
 | Config of (ast * stack * frame)
 | Halted of (stack * frame)
 | ConfigError of (string * (ast * stack * frame))
 ;;
 
-module AnObject = Map.Make(String);;
-
 let theNull = TaintMissed(LocationValue(ObjectId(-1)));;
 
+module AnObject = Map.Make(String);;
+
+exception OutOfHeapDom;;
+
+type heapRow = 
+| JustVal of taintedValue
+| Everything of (taintedValue AnObject.t)
+;;
+
 let heapGet heap obj_id field_idt = 
-  match AnObject.find_opt field_idt (List.nth heap obj_id) with
-  | Some x -> x
-  | None -> ValError
+  match List.nth heap obj_id with
+  | JustVal(tva_) -> (
+    if field_idt = "val" then tva_ else ValError
+  )
+  | Everything(map) -> (
+    match AnObject.find_opt field_idt map with
+    | Some x -> x
+    | None -> theNull
+  )
 ;;
 
 let heapSet heap obj_id field_idt tva = 
@@ -308,7 +322,14 @@ let helper obj_id_acc field_idt tva = (
   | [] -> []
   | h :: t -> (
     (if obj_id_acc = 0 then (
-      AnObject.add field_idt tva h
+      match h with
+      | JustVal(_) -> (
+        if field_idt = "val" then JustVal(tva) 
+        else raise OutOfHeapDom
+      )
+      | Everything(map) -> (
+        Everything(AnObject.add field_idt tva map)
+      )
     ) else h) :: 
     (helper (obj_id_acc - 1) field_idt tva t)
     )
@@ -348,7 +369,7 @@ let rec eval stack heap = function
 )
 | Null -> theNull
 | VarIdt(VarAnnotation(_, id)) -> (
-  heapGet heap (stackGet id stack) ""
+  heapGet heap (stackGet id stack) "val"
 )
 | FieldSeek(a, b) -> (
   let tva_l = eval stack heap a
@@ -454,7 +475,7 @@ let rec crank = function
     Config(
       Block(cmd), 
       DeclFrame(var_id, obj_id) :: stack, 
-      heapSet heap obj_id "" theNull
+      heapSet heap obj_id "val" theNull
     )
   )
   | Block(subCtrl) -> (
@@ -482,15 +503,12 @@ let rec crank = function
           Config(
             Block(cmd), 
             CallFrame((var_id, obj_id), stack) :: defStack, 
-            heapSet heap obj_id "" tva_arg
+            heapSet heap obj_id "val" tva_arg
           )
         )
         | _ -> ConfigError("Calling a non-proc", (ctrl, stack, heap))
       )
     )
-  )
-  | Malloc(VarAnnotation(_, var_id)) -> (
-
   )
   | VarAssign(VarAnnotation(_, var_id), expr) -> (
     match eval stack heap expr with
@@ -498,7 +516,7 @@ let rec crank = function
     | TaintMissed(value) -> (
       let obj_id = stackGet var_id stack in Halted(
         stack, 
-        heapSet heap obj_id "" TaintMissed(value)
+        heapSet heap obj_id "val" TaintMissed(value)
       )
     )
   )
@@ -517,13 +535,19 @@ let rec crank = function
             match value_f with
             | FieldValue(field_idt) -> Halted(
               stack, 
-              heapSet heap obj_id field_idt tva_e
+              try
+                heapSet heap obj_id field_idt tva_e
+              with OutOfHeapDom -> ConfigError("Field assignment out of heap domain", (ctrl, stack, heap))
             )
             | _ -> ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap))
           )
           | _ -> ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap))
         )
       )
+  )
+  | Malloc(VarAnnotation(_, var_id)) -> (
+    let obj_id = getNewObjId () in
+
   )
   | FirstThen(cmd1, cmd2) -> (
   )
