@@ -605,22 +605,7 @@ let rec crank = function
       | Halted(stack_p, heap_p) -> Halted(stack_p, heap_p)
     )
   )
-  | FieldIdt(field_idt) -> ()
-  | LiteralNum(x) -> ()
-  | Minus(expr1, expr2) -> (
-  )
-  | Null -> Null
-  | VarIdt(var_annotation) -> (
-  )
-  | FieldSeek(obj, field) -> (
-  )
-  | ProcDef(var_annotation, cmd) -> (
-  )
-  | LiteralBool(x) -> ()
-  | IsEqual(expr1, expr2) -> (
-  )
-  | IsLessThan(expr1, expr2) -> (
-  )
+  | _ -> failwith "Error 2375098742307"   (* Impossible, thanks to parser *)
 );;
 
 let lexbuf = Lexing.from_channel stdin in
