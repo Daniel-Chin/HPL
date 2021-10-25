@@ -173,16 +173,16 @@ let rec prettyPrint depth =
 
 exception UsingUndeclaredVariable of string;;
 
-let id_acc = ref 0;;
+let var_id_acc = ref 0;;
 
-let getNewId () = let new_id = !id_acc in (
-  id_acc := !id_acc + 1;
+let getNewVarId () = let new_id = !var_id_acc in (
+  var_id_acc := !var_id_acc + 1;
   new_id
 );;
 
 let emptyNamespace _ = None;;
 
-let declare key namespace = let new_id = getNewId () in (
+let declare key namespace = let new_id = getNewVarId () in (
   (fun key_p -> (
     if key_p = key then Some new_id else namespace key_p
   )), 
@@ -275,6 +275,7 @@ let rec annotate namespace = function
     | Block(_) -> failwith "Cannot annotate Block"
 ;;
 
+(* Semantic Domain *)
 type boolean = | True | False | BoolError;;
 type location = | ObjectId of int;;  (* -1 means null *);;
 type value = 
@@ -301,6 +302,19 @@ let heapGet heap obj_id field_idt =
   | None -> ValError
 ;;
 
+let heapSet heap obj_id field_idt tva = 
+let helper obj_id_acc field_idt tva = (
+  function
+  | [] -> []
+  | h :: t -> (
+    (if obj_id_acc = 0 then (
+      AnObject.add field_idt tva h
+    ) else h) :: 
+    (helper (obj_id_acc - 1) field_idt tva t)
+    )
+) in helper obj_id field_idt tva heap
+;;
+
 let rec stackGet var_id = function
 | Stack(stk) -> (
   match stk with
@@ -314,6 +328,7 @@ let rec stackGet var_id = function
     | CallFrame(binding, _) -> helper binding
   )
 )
+;;
 
 let rec eval stack heap = function
 | FieldIdt(field_idt) -> TaintMissed(FieldValue(field_idt))
@@ -365,12 +380,25 @@ let rec eval stack heap = function
 | _ -> ValError   (* Impossible *)
 ;;
 
+let obj_id_acc = ref 0;;
+
+let getNewObjId () = let new_id = !obj_id_acc in (
+  obj_id_acc := !obj_id_acc + 1;
+  new_id
+);;
+
 let rec crank = function
 | ConfigError -> failwith "ERROR 327169437652"
-| Halted -> failwith "Cannot crank a halted config."
-| configuration(ctrl, stack, heap) -> (
+| Halted(_) -> failwith "Cannot crank a halted config."
+| Config(ctrl, stack, heap) -> (
   match ctrl with 
-  | DecVar(var_annotation, cmd) -> (
+  | DecVar(VarAnnotation(_, var_id), cmd) -> (
+    let obj_id = getNewObjId () in
+    Config(
+      Block(cmd), 
+      DeclFrame(var_id, obj_id) :: stack, 
+      heapSet heap obj_id "" theNull
+    )
   )
   | ProcCall(proc, arg) -> (
   )
@@ -408,7 +436,7 @@ let rec crank = function
   | IsLessThan(expr1, expr2) -> (
   )
   | Block(_) -> ()
-)
+);;
 
 let lexbuf = Lexing.from_channel stdin in
 try
