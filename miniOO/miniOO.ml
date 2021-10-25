@@ -380,6 +380,63 @@ let rec eval stack heap = function
 | _ -> ValError   (* Impossible *)
 ;;
 
+let evalBool stack heap expr = 
+let helper = function 
+| LiteralBool(x) -> Some x
+| IsEqual(a, b) -> (
+  let tva_a = eval stack heap a in
+  let tva_b = eval stack heap b in
+  match tva_a with
+  | ValError -> None
+  | TaintMissed(value_a) -> (
+    match tva_b with
+    | ValError -> None
+    | TaintMissed(value_b) -> (
+      match value_a with
+      | IntValue(int_a) -> (
+        match value_b with 
+        | IntValue(int_b) -> Some (int_a = int_b)
+        | _ -> None
+      )
+      | LocationValue(loc_a) -> (
+        match value_b with 
+        | LocationValue(loc_b) -> Some (loc_a = loc_b)
+        | _ -> None
+      )
+      | Closure(clo_a) -> (
+        match value_b with 
+        | Closure(clo_b) -> Some (clo_a = clo_b)
+        | _ -> None
+      )
+      | _ -> None
+    )
+  )
+)
+| IsLessThan(a, b) -> (
+  let tva_a = eval stack heap a in
+  let tva_b = eval stack heap b in
+  match tva_a with
+  | ValError -> None
+  | TaintMissed(value_a) -> (
+    match tva_b with
+    | ValError -> None
+    | TaintMissed(value_b) -> (
+      match value_a with
+      | IntValue(int_a) -> (
+        match value_b with 
+        | IntValue(int_b) -> Some (int_a < int_b)
+        | _ -> None
+      )
+      | _ -> None
+    )
+  )
+)
+in match helper expr with
+| Some true -> True
+| Some false -> False
+| None -> BoolError
+;;
+
 let obj_id_acc = ref 0;;
 
 let getNewObjId () = let new_id = !obj_id_acc in (
