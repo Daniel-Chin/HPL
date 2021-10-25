@@ -289,7 +289,7 @@ and taintedValue = | ValError | TaintMissed of value
 type configuration = 
 | Config of (ast * stack * frame)
 | Halted of (stack * frame)
-| ConfigError
+| ConfigError of (string * (ast * stack * frame))
 ;;
 
 module AnObject = Map.Make(String);;
@@ -445,7 +445,7 @@ let getNewObjId () = let new_id = !obj_id_acc in (
 );;
 
 let rec crank = function
-| ConfigError -> failwith "ERROR 327169437652"
+| ConfigError(msg, _) -> failwith msg
 | Halted(_) -> failwith "Cannot crank a halted config."
 | Config(ctrl, stack, heap) -> (
   match ctrl with 
@@ -457,7 +457,36 @@ let rec crank = function
       heapSet heap obj_id "" theNull
     )
   )
+  | Block(subCtrl) -> (
+    match crank (Config(subCtrl, stack, heap)) with
+    | ConfigError(x) -> ConfigError(x)
+    | Config(subCtrl_p, stack_p, heap_p) -> Config(
+      Block(subCtrl_p), stack_p, heap_p
+    )
+    | Halted(stack_p, heap_p) -> Halted((
+      match stack_p with
+      | [] -> failwith "Impossible to reach 26004978165"
+      | _ :: t -> t
+    ), heap_p)
+  )
   | ProcCall(proc, arg) -> (
+    let tva_proc = eval stack heap proc
+    and tva_arg  = eval stack heap arg in (
+      match tva_proc with
+      | ValError -> ConfigError("Calling `error` as proc", (ctrl, stack, heap))
+      | TaintMissed(value) -> (
+        match value with
+        | Closure({var = var; cmd = cmd; stack = defStack}) -> (
+          let obj_id = getNewObjId () in
+          Config(
+            Block(cmd), 
+            CallFrame((var_id, obj_id), stack) :: defStack, 
+            heapSet heap obj_id "" tva_arg
+          )
+        )
+        | _ -> ConfigError("Calling a non-proc", (ctrl, stack, heap))
+      )
+    )
   )
   | Malloc(var_annotation) -> (
   )
@@ -492,7 +521,6 @@ let rec crank = function
   )
   | IsLessThan(expr1, expr2) -> (
   )
-  | Block(_) -> ()
 );;
 
 let lexbuf = Lexing.from_channel stdin in
