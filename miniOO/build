@@ -2,6 +2,7 @@ set -e
 
 ocamlc -c Types.mli
 ocamllex LEX.mll
+echo ""
 menhir MENHIR.mly
 ocamlc -c MENHIR.mli
 ocamlc -c LEX.ml
