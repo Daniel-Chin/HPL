@@ -296,7 +296,9 @@ module AnObject = Map.Make(String);;
 let theNull = TaintMissed(LocationValue(ObjectId(-1)));;
 
 let heapGet heap obj_id field_idt = 
-  AnObject.find field_idt (List.nth heap obj_id)
+  match AnObject.find_opt field_idt (List.nth heap obj_id) with
+  | Some x -> x
+  | None -> ValError
 ;;
 
 let rec stackGet var_id = function
