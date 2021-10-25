@@ -166,26 +166,37 @@ let rec prettyPrint depth =
     )
 ;;
 
-let emptyNamespace _ = None;;
-let declare key namespace next_id = fun key_p -> (
-  if key_p = key then Some next_id else namespace key_p
-);;
-
 exception UsingUndeclaredVariable of string;;
 
-let rec annotate namespace next_id = function 
+let id_acc = ref 0;;
+
+let getNewId () = let new_id = !id_acc in (
+  id_acc := !id_acc + 1;
+  new_id
+);;
+
+let emptyNamespace _ = None;;
+
+let declare key namespace = let new_id = getNewId () in (
+  (fun key_p -> (
+    if key_p = key then Some new_id else namespace key_p
+  )), 
+  new_id
+);;
+
+let rec annotate namespace = function 
     | DecVar(var_annotation, cmd) -> (match var_annotation with
       | VarAnnotation(name, _) -> (
-        let new_namespace = declare name namespace next_id in
+        let new_namespace, new_id = declare name namespace in
         DecVar(
-          VarAnnotation(name, next_id), 
-          annotate new_namespace (next_id + 1) cmd
+          VarAnnotation(name, new_id), 
+          annotate new_namespace cmd
         )
       )
     )
     | ProcCall(proc, arg) -> ProcCall(
-      annotate namespace next_id proc, 
-      annotate namespace next_id arg
+      annotate namespace proc, 
+      annotate namespace arg
     )
     | Malloc(var_annotation) -> (match var_annotation with
       | VarAnnotation(name, _) -> (
@@ -200,41 +211,41 @@ let rec annotate namespace next_id = function
           | None -> raise (UsingUndeclaredVariable name)
           | Some id -> VarAssign(
             VarAnnotation(name, id), 
-            annotate namespace next_id expr
+            annotate namespace expr
           )
       )
     )
     | FirstThen(cmd1, cmd2) -> FirstThen(
-      annotate namespace next_id cmd1, 
-      annotate namespace next_id cmd2
+      annotate namespace cmd1, 
+      annotate namespace cmd2
     )
     | FieldAssign(obj, field, expr) -> FieldAssign(
-      annotate namespace next_id obj, 
-      annotate namespace next_id field, 
-      annotate namespace next_id expr
+      annotate namespace obj, 
+      annotate namespace field, 
+      annotate namespace expr
     )
     | Skip -> Skip
     | WhileLoop(condition, cmd) -> WhileLoop(
-      annotate namespace next_id condition, 
-      annotate namespace next_id cmd 
+      annotate namespace condition, 
+      annotate namespace cmd 
     )
     | IfThenElse(condition, thenClause, elseClause) -> IfThenElse(
-      annotate namespace next_id condition, 
-      annotate namespace next_id thenClause, 
-      annotate namespace next_id elseClause
+      annotate namespace condition, 
+      annotate namespace thenClause, 
+      annotate namespace elseClause
     )
     | Parallel(cmd1, cmd2) -> Parallel(
-      annotate namespace next_id cmd1, 
-      annotate namespace next_id cmd2
+      annotate namespace cmd1, 
+      annotate namespace cmd2
     )
     | Atomic(cmd) -> Atomic(
-      annotate namespace next_id cmd
+      annotate namespace cmd
     )
     | FieldIdt(filed_idt) -> FieldIdt(filed_idt)
     | LiteralNum(x) -> LiteralNum(x)
     | Minus(expr1, expr2) -> Minus(
-      annotate namespace next_id expr1, 
-      annotate namespace next_id expr2
+      annotate namespace expr1, 
+      annotate namespace expr2
     )
     | Null -> Null
     | VarIdt(var_annotation) -> (match var_annotation with
@@ -245,26 +256,26 @@ let rec annotate namespace next_id = function
       )
     )
     | FieldSeek(obj, field) -> FieldSeek(
-      annotate namespace next_id obj, 
-      annotate namespace next_id field
+      annotate namespace obj, 
+      annotate namespace field
     )
     | ProcDef(var_annotation, cmd) -> (match var_annotation with
       | VarAnnotation(name, _) -> (
-        let new_namespace = declare name namespace next_id in
+        let new_namespace, new_id = declare name namespace in
         ProcDef(
-          VarAnnotation(name, next_id), 
-          annotate new_namespace (next_id + 1) cmd
+          VarAnnotation(name, new_id), 
+          annotate new_namespace cmd
         )
       )
     )
     | LiteralBool(x) -> LiteralBool(x)
     | IsEqual(expr1, expr2) -> IsEqual(
-      annotate namespace next_id expr1, 
-      annotate namespace next_id expr2
+      annotate namespace expr1, 
+      annotate namespace expr2
     )
     | IsLessThan(expr1, expr2) -> IsLessThan(
-      annotate namespace next_id expr1, 
-      annotate namespace next_id expr2
+      annotate namespace expr1, 
+      annotate namespace expr2
     )
 ;;
 
@@ -273,7 +284,7 @@ try
   while true do
     try
       let theAst = MENHIR.prog LEX.token lexbuf in (
-        prettyPrint 0 (annotate (emptyNamespace) 0 theAst)
+        prettyPrint 0 (annotate emptyNamespace theAst)
       )
     with Parse_error ->
       (
