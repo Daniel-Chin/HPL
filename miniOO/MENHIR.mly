@@ -5,9 +5,9 @@
 %} /* declarations */
 
 /* lexer tokens */
-%token EOL SEMICOLON ASSIGN MINUS DOT COLUMN EQUAL LESSTHAN
+%token SEMICOLON ASSIGN MINUS DOT COLUMN EQUAL LESSTHAN
 %token LPAREN RPAREN LBRAK RBRAK DECLARE MALLOC SKIP
-%token WHILE IF ELSE PARALLEL ATOM PROC NULL
+%token WHILE IF ELSE PARALLEL ATOM PROC NULL THE_END
 %token < string > VARIDT FIELDIDT
 %token < int > NUM
 %token < bool > BOOL
@@ -23,7 +23,7 @@
 %% /* rules */
 
 prog :
-    c = cmd EOL  { c }
+    c = cmd THE_END  { c }
 
 cmd :
     DECLARE v = VARIDT SEMICOLON c = cmd     { DecVar((v, c)) }
