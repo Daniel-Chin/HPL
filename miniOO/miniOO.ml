@@ -485,11 +485,11 @@ let rec crank = function
       heapGrow heap false
     )
   )
-  | Block(subCtrl) -> (
-    match crank (Config(subCtrl, stack, heap)) with
+  | Block(cmd) -> (
+    match crank (Config(cmd, stack, heap)) with
     | ConfigError(x) -> ConfigError(x)
-    | Config(subCtrl_p, stack_p, heap_p) -> Config(
-      Block(subCtrl_p), stack_p, heap_p
+    | Config(cmd_p, stack_p, heap_p) -> Config(
+      Block(cmd_p), stack_p, heap_p
     )
     | Halted(stack_p, heap_p) -> Halted((
       match stack_p with
@@ -562,16 +562,48 @@ let rec crank = function
       heapGrow heap true
     )
   )
+  | Skip -> Halted(stack, heap)
   | FirstThen(cmd1, cmd2) -> (
+    match crank (Config(cmd1, stack, heap)) with
+    | ConfigError(x) -> ConfigError(x)
+    | Config(cmd1_p, stack_p, heap_p) -> Config(
+      FirstThen(cmd1_p, cmd2), stack_p, heap_p
+    )
+    | Halted(stack_p, heap_p) -> Config(cmd2, stack_p, heap_p)
   )
-  | Skip -> Skip
   | WhileLoop(condition, cmd) -> (
+    match evalBool stack heap condition with
+    | BoolError -> ConfigError("while loop condition is `error`", (ctrl, stack, heap))
+    | True -> (
+      Config((FirstThen(cmd, WhileLoop(condition, cmd))), stack, heap)
+    )
+    | False -> Halted(stack, heap)
   )
   | IfThenElse(condition, thenClause, elseClause) -> (
+    match evalBool stack heap condition with
+    | BoolError -> ConfigError("if statement condition is `error`", (ctrl, stack, heap))
+    | True -> Config(thenClause, stack, heap)
+    | False -> Config(elseClause, stack, heap)
   )
   | Parallel(cmd1, cmd2) -> (
+    let helper cmd_a cmd_b = (
+      match crank (Config(cmd_a, stack, heap)) with
+      | ConfigError(x) -> ConfigError(x)
+      | Config(cmd_a_p, stack_p, heap_p) -> Config(
+        Parallel(cmd_a_p, cmd_b), stack_p, heap_p
+      )
+      | Halted(stack_p, heap_p) -> Config(cmd_b, stack_p, heap_p)
+    ) in if Random.bool () 
+    then helper cmd1 cmd2
+    else helper cmd2 cmd1
   )
   | Atomic(cmd) -> (
+    let helper cmd_x stack_x heap_x = (
+      match crank (Config(cmd_x, stack_x, heap_x)) with
+      | ConfigError(x) -> ConfigError(x)
+      | Config(cmd_p, stack_p, heap_p) -> helper cmd_p stack_p heap_p
+      | Halted(stack_p, heap_p) -> Halted(stack_p, heap_p)
+    )
   )
   | FieldIdt(field_idt) -> ()
   | LiteralNum(x) -> ()
