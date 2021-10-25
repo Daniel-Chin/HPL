@@ -336,6 +336,13 @@ let helper obj_id_acc field_idt tva = (
 ) in helper obj_id field_idt tva heap
 ;;
 
+let heapGrow heap is_malloc = (
+  (
+    if is_malloc then Everything(AnObject.empty) 
+    else JustVal(theNull)
+  ) :: heap
+);;
+
 let rec stackGet var_id = function
 | Stack(stk) -> (
   match stk with
@@ -475,7 +482,7 @@ let rec crank = function
     Config(
       Block(cmd), 
       DeclFrame(var_id, obj_id) :: stack, 
-      heapSet heap obj_id "val" theNull
+      heapGrow heap false
     )
   )
   | Block(subCtrl) -> (
@@ -503,7 +510,7 @@ let rec crank = function
           Config(
             Block(cmd), 
             CallFrame((var_id, obj_id), stack) :: defStack, 
-            heapSet heap obj_id "val" tva_arg
+            heapSet (heapGrow heap false) obj_id "val" tva_arg
           )
         )
         | _ -> ConfigError("Calling a non-proc", (ctrl, stack, heap))
@@ -547,7 +554,13 @@ let rec crank = function
   )
   | Malloc(VarAnnotation(_, var_id)) -> (
     let obj_id = getNewObjId () in
-
+    let heap_p = heapSet heap (
+      stackGet var_id stack
+    ) "val" (TaintMissed(LocationValue(ObjectId(obj_id)))) in
+    Halted(
+      stack, 
+      heapGrow heap true
+    )
   )
   | FirstThen(cmd1, cmd2) -> (
   )
