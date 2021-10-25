@@ -166,12 +166,115 @@ let rec prettyPrint depth =
     )
 ;;
 
+let emptyNamespace _ = None;;
+let declare key namespace next_id = fun key_p -> (
+  if key_p = key then Some next_id else namespace key_p
+);;
+
+exception UsingUndeclaredVariable of string;;
+
+let rec annotate namespace next_id = function 
+    | DecVar(var_annotation, cmd) -> (match var_annotation with
+      | VarAnnotation(name, _) -> (
+        let new_namespace = declare name namespace next_id in
+        DecVar(
+          VarAnnotation(name, next_id), 
+          annotate new_namespace (next_id + 1) cmd
+        )
+      )
+    )
+    | ProcCall(proc, arg) -> ProcCall(
+      annotate namespace next_id proc, 
+      annotate namespace next_id arg
+    )
+    | Malloc(var_annotation) -> (match var_annotation with
+      | VarAnnotation(name, _) -> (
+        match namespace name with
+          | None -> raise (UsingUndeclaredVariable name)
+          | Some id -> Malloc(VarAnnotation(name, id))
+      )
+    )
+    | VarAssign(var_annotation, expr) -> (match var_annotation with
+      | VarAnnotation(name, _) -> (
+        match namespace name with
+          | None -> raise (UsingUndeclaredVariable name)
+          | Some id -> VarAssign(
+            VarAnnotation(name, id), 
+            annotate namespace next_id expr
+          )
+      )
+    )
+    | FirstThen(cmd1, cmd2) -> FirstThen(
+      annotate namespace next_id cmd1, 
+      annotate namespace next_id cmd2
+    )
+    | FieldAssign(obj, field, expr) -> FieldAssign(
+      annotate namespace next_id obj, 
+      annotate namespace next_id field, 
+      annotate namespace next_id expr
+    )
+    | Skip -> Skip
+    | WhileLoop(condition, cmd) -> WhileLoop(
+      annotate namespace next_id condition, 
+      annotate namespace next_id cmd 
+    )
+    | IfThenElse(condition, thenClause, elseClause) -> IfThenElse(
+      annotate namespace next_id condition, 
+      annotate namespace next_id thenClause, 
+      annotate namespace next_id elseClause
+    )
+    | Parallel(cmd1, cmd2) -> Parallel(
+      annotate namespace next_id cmd1, 
+      annotate namespace next_id cmd2
+    )
+    | Atomic(cmd) -> Atomic(
+      annotate namespace next_id cmd
+    )
+    | FieldIdt(filed_idt) -> FieldIdt(filed_idt)
+    | LiteralNum(x) -> LiteralNum(x)
+    | Minus(expr1, expr2) -> Minus(
+      annotate namespace next_id expr1, 
+      annotate namespace next_id expr2
+    )
+    | Null -> Null
+    | VarIdt(var_annotation) -> (match var_annotation with
+      | VarAnnotation(name, _) -> (
+        match namespace name with
+          | None -> raise (UsingUndeclaredVariable name)
+          | Some id -> VarIdt(VarAnnotation(name, id))
+      )
+    )
+    | FieldSeek(obj, field) -> FieldSeek(
+      annotate namespace next_id obj, 
+      annotate namespace next_id field
+    )
+    | ProcDef(var_annotation, cmd) -> (match var_annotation with
+      | VarAnnotation(name, _) -> (
+        let new_namespace = declare name namespace next_id in
+        ProcDef(
+          VarAnnotation(name, next_id), 
+          annotate new_namespace (next_id + 1) cmd
+        )
+      )
+    )
+    | LiteralBool(x) -> LiteralBool(x)
+    | IsEqual(expr1, expr2) -> IsEqual(
+      annotate namespace next_id expr1, 
+      annotate namespace next_id expr2
+    )
+    | IsLessThan(expr1, expr2) -> IsLessThan(
+      annotate namespace next_id expr1, 
+      annotate namespace next_id expr2
+    )
+;;
+
 let lexbuf = Lexing.from_channel stdin in
 try
   while true do
     try
-      let theAst = MENHIR.prog LEX.token lexbuf in 
-      prettyPrint 0 theAst
+      let theAst = MENHIR.prog LEX.token lexbuf in (
+        prettyPrint 0 (annotate (emptyNamespace) 0 theAst)
+      )
     with Parse_error ->
       (
         (print_string "Syntax error ..." ; print_newline ()) ;
@@ -180,10 +283,12 @@ try
   done
 with 
   | LEX.Eof -> ()
+  | UsingUndeclaredVariable(msg) -> raise (UsingUndeclaredVariable msg)
   | e -> (
+    print_string "Unknown error. Prabably parsing error? \n";
     print_string "lexbuf is at char # ";
     print_int lexbuf.lex_curr_pos;
-    print_string "\n";
+    print_string "\n (Use ctrl+alt+G in VSCode to seek char pos.)";
     raise e
   )
 ;;

@@ -1,0 +1,31 @@
+var X; var Y; 
+{
+  {
+    {
+      X = Y; 
+      {
+        Y = somefield; 
+        {
+          X = X.otherObj.Y - 3; 
+          X.feild = 1
+        }
+      }
+    };
+    {
+      var X;
+      X = 0;
+      {
+        {
+          Y = proc T : {X = X - 1; if T == 0 skip else Y(T - 1)};
+          Y(5)
+        };
+        X = proc X : X = 3
+      }
+    }
+  }; 
+  {
+    malloc(X) |||
+    atom(while false null.null = 3)
+  }
+}
+THE_END
