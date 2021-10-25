@@ -1,2 +1,3 @@
+set -e
 ./build
 cat ./tests/$1.miniOO | ./miniOO

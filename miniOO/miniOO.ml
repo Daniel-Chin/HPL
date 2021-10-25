@@ -173,7 +173,7 @@ try
 with 
   | LEX.Eof -> ()
   | e -> (
-    print_string "lexbuf is at ";
+    print_string "lexbuf is at char # ";
     print_int lexbuf.lex_curr_pos;
     print_string "\n";
     raise e
