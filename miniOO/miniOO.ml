@@ -283,7 +283,7 @@ type value =
 | IntValue of int
 | LocationValue of location
 | Closure of {var_id : int; cmd : ast; stack : stack}
-and frame = | DeclFrame of (int * int) | CallFrame of ((int * int) * stack)
+and frame = | DeclFrame of (int * int * string) | CallFrame of ((int * int * string) * stack)
 and stack = | Stack of frame list
 and taintedValue = | ValError | TaintMissed of value
 ;;
@@ -345,7 +345,7 @@ let rec stackGet var_id = function
 | Stack(lst_stack) -> (
   match lst_stack with
   | [] -> -99   (* Impossible *)
-  | h :: t -> let helper (frame_var_id, frame_obj_id) = (
+  | h :: t -> let helper (frame_var_id, frame_obj_id, _) = (
     if frame_var_id = var_id then frame_obj_id 
     else stackGet var_id (Stack(t))
   ) in (
@@ -476,12 +476,12 @@ let rec crank = function
 | Halted(_) -> failwith "Cannot crank a halted config."
 | Config(ctrl, stack, heap) -> (
   match ctrl with 
-  | DecVar(VarAnnotation(_, var_id), cmd) -> (
+  | DecVar(VarAnnotation(var_idt, var_id), cmd) -> (
     let obj_id = getNewObjId () in
     match stack with
     | Stack(lst_stack) -> Config(
       Block(cmd), 
-      Stack(DeclFrame(var_id, obj_id) :: lst_stack), 
+      Stack(DeclFrame(var_id, obj_id, var_idt) :: lst_stack), 
       heapGrow heap false
     )
   )
@@ -513,7 +513,7 @@ let rec crank = function
           match defStack with
           | Stack(lst_stack) -> Config(
             Block(cmd), 
-            Stack(CallFrame((var_id, obj_id), stack) :: lst_stack), 
+            Stack(CallFrame((var_id, obj_id, "__FuncArg__"), stack) :: lst_stack), 
             heapSet (heapGrow heap false) obj_id "val" tva_arg
           )
         )
@@ -613,6 +613,73 @@ let rec crank = function
   )
   | _ -> failwith "Error 2375098742307"   (* Impossible, thanks to parser *)
 );;
+
+let printTva = function
+| ValError -> print_string "`error` \n"
+| TaintMissed(value) -> (
+  match value with
+  | FieldValue(field_idt) -> (
+    print_string "field '";
+    print_string field_idt;
+    print_string "' \n"
+  )
+  | IntValue(x) -> (
+    print_string "int ";
+    print_int x;
+    print_newline
+  )
+  | LocationValue(target_obj_id) -> (
+    print_string "<obj @ ";
+    print_int target_obj_id;
+    print_string "> \n"
+  )
+  | Closure(_) -> (
+    print_string "some closure \n";
+  )
+)
+;;
+
+let rec printStack = let helper (var_id, obj_id, var_idt) = (
+  print_string var_idt; 
+  print_string "_";
+  print_int var_id; 
+  print_string "\t <obj @ ";
+  print_int obj_id;
+  print_string "> \n"
+) in function
+| [] -> ()
+| h :: t -> (
+  match h with
+  | DeclFrame(binding)    -> helper binding
+  | CallFrame(binding, _) -> helper binding
+  ;
+  printStack t
+)
+;;
+
+let rec printHeap obj_id = function
+| [] -> ()
+| h :: t -> (
+  print_string "\t <obj @ ";
+  print_int obj_id;
+  print_string "> \n";
+  match h with
+  | JustVal(tVal) -> (
+    print_string "  val : ";
+    printTva tVal
+  )
+  | Everything(map) -> (
+    AnObject.iter (function key value -> (
+      print_string "  ";
+      print_string key;
+      print_string " : ";
+      printTva value
+    )) map
+  )
+  ;
+  printHeap (obj_id + 1) t
+)
+;;
 
 let lexbuf = Lexing.from_channel stdin in
 try
