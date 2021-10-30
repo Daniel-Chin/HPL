@@ -681,6 +681,54 @@ let rec printHeap obj_id = function
 )
 ;;
 
+let rec pprintObj heap depth already obj_id = (
+  match List.nth heap obj_id with
+  | JustVal(tva_) -> printTva tva_
+  | Everything(map) -> (
+    print_string "{ \n";
+    AnObject.iter (function k v -> (
+      print_string String.make (depth + 1) ' ';
+      print_string k;
+      print_string " : ";
+      match v with
+      | ValError -> print_string "`error` \n"
+      | TaintMissed(value) -> (
+        match value with
+        | FieldValue(_) | IntValue(_) | Closure(_) -> printTva v
+        | LocationValue(target_obj_id) -> (
+          let _already = obj_id :: already in 
+          if List.mem target_obj_id _already 
+          then (
+            print_string "recursive <obj @ ";
+            print_int target_obj_id;
+            print_string "> \n";
+          )
+          else pprintObj heap (depth + 1) _already target_obj_id
+        )
+      )
+    )) map;
+    print_string String.make depth ' ';
+    print_string "} \n"
+  )
+);;
+
+let rec pprintVars heap = let helper (var_id, obj_id, var_idt) = (
+  print_string var_idt; 
+  print_string "_";
+  print_int var_id; 
+  print_string " = ";
+  pprintObj heap 0 [] obj_id
+) in function
+| [] -> ()
+| h :: t -> (
+  match h with
+  | DeclFrame(binding)    -> helper binding
+  | CallFrame(binding, _) -> helper binding
+  ;
+  printStack t
+)
+;;
+
 let lexbuf = Lexing.from_channel stdin in
 try
   while true do
