@@ -708,7 +708,9 @@ let rec pprintObj heap depth already obj_id = (
       )
     )) map;
     print_string String.make depth ' ';
-    print_string "} \n"
+    print_string "} @ ";
+    print_int obj_id;
+    print_newline
   )
 );;
 
