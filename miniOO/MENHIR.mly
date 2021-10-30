@@ -1,7 +1,7 @@
 /* File MENHIR.mly */
 
 %{ (* header *)
-
+open Types;;
 %} /* declarations */
 
 /* lexer tokens */
