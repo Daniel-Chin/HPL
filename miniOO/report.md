@@ -15,6 +15,7 @@ tricks
     Heap is a list of heapRows. The list index is the object_id. A heapRow is JustValue | Everything. JustValue has only field `val`. Everything is a map of field_name -> *Tva*, but lookup failure returns *null*. 
     heapGet out-of-*dom* returns *error*. 
     heapSet out-of-*dom* raises HeapOutOfDom. 
+    "Hold" AST node for stack printing. 
 remarks:
     every recursive function turned out to be accidentally tail-recursive...
 

@@ -25,4 +25,5 @@ type ast =
 | IsEqual     of (ast * ast)
 | IsLessThan  of (ast * ast)
 | Block       of (ast)
+| Hold
 ;;

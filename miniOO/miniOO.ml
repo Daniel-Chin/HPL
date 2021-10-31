@@ -169,6 +169,10 @@ let rec prettyPrint depth =
       print_string "BLOCK \n";
       prettyPrint (depth + 1) cmd
     )
+    | Hold -> (
+      indent ();
+      print_string "HOLD \n";
+    )
 ;;
 
 exception UsingUndeclaredVariable of string;;
@@ -273,6 +277,7 @@ let rec annotate namespace = function
     annotate namespace expr2
   )
   | Block(_) -> failwith "Cannot annotate Block"
+  | Hold -> failwith "Cannot annotate Hold"
 ;;
 
 (* Semantic Domain *)
@@ -483,20 +488,26 @@ let rec crank = function
     )
   )
   | Block(cmd) -> (
-    match crank (Config(cmd, stack, heap)) with
-    | ConfigError(x) -> ConfigError(x)
-    | Config(cmd_p, stack_p, heap_p) -> Config(
-      Block(cmd_p), stack_p, heap_p
-    )
-    | Halted(stack_p, heap_p) -> Halted((
-      match stack_p with
+    match cmd with 
+    | Hold -> Halted((
+      match stack with
       | Stack(lst_stack) -> (
         match lst_stack with
         | [] -> failwith "Impossible to reach 26004978165"
         | DeclFrame(_) :: t -> Stack(t)
         | CallFrame(_, stashedStack) :: _ -> stashedStack
       )
-    ), heap_p)
+    ), heap)
+    | _ -> (
+      match crank (Config(cmd, stack, heap)) with
+      | ConfigError(x) -> ConfigError(x)
+      | Config(cmd_p, stack_p, heap_p) -> Config(
+        Block(cmd_p), stack_p, heap_p
+      )
+      | Halted(stack_p, heap_p) -> Config(
+        Block(Hold), stack_p, heap_p
+      )
+    )
   )
   | ProcCall(proc, arg) -> (
     let tva_proc = eval stack heap proc
