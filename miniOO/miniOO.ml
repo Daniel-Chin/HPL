@@ -190,10 +190,10 @@ let declare key namespace = let new_id = getNewVarId () in (
 );;
 
 let rec annotate namespace = function 
-    | DecVar(VarAnnotation(name, _), cmd) -> (
-      let new_namespace, new_id = declare name namespace in
-      DecVar(
-        VarAnnotation(name, new_id), 
+  | DecVar(VarAnnotation(name, _), cmd) -> (
+    let new_namespace, new_id = declare name namespace in
+    DecVar(
+      VarAnnotation(name, new_id), 
         annotate new_namespace cmd
       )
     )
