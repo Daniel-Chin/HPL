@@ -637,10 +637,11 @@ let printTva = function
 ;;
 
 let rec printStack = let helper (var_id, obj_id, var_idt) = (
+  print_string "<";
   print_string var_idt; 
-  print_string "_";
+  print_string " (";
   print_int var_id; 
-  print_string "\t <obj @ ";
+  print_string ")>\t <obj @ ";
   print_int obj_id;
   print_string "> \n"
 ) in function
@@ -684,7 +685,7 @@ let rec pprintObj heap depth already obj_id = (
   | Everything(map) -> (
     print_string "{ \n";
     AnObject.iter (fun k v -> (
-      print_string String.make (depth + 1) ' ';
+      print_string (String.make (depth + 1) ' ');
       print_string k;
       print_string " : ";
       match v with
@@ -704,20 +705,21 @@ let rec pprintObj heap depth already obj_id = (
         )
       )
     )) map;
-    print_string String.make depth ' ';
+    print_string (String.make depth ' ');
     print_string "} @ ";
     print_int obj_id;
     print_newline ()
   )
 );;
 
-let rec pprintVars heap = let helper (var_id, obj_id, var_idt) = (
+let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
+  print_string "<";
   print_string var_idt; 
-  print_string "_";
+  print_string " (";
   print_int var_id; 
-  print_string " = ";
+  print_string ")> = ";
   pprintObj heap 0 [] obj_id
-) in function
+) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
   match h with
@@ -737,26 +739,33 @@ let interpret annotatedAst =
   | Halted(stack, heap) -> (
     print_newline ();
     print_string "Halted. \n";
-    pprintVars heap stack
+    (stack, heap)
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
     print_newline ();
     print_string "ConfigError! ";
     print_string msg;
     print_newline ();
-    pprintVars heap stack
+    (stack, heap)
   )
-  in helper Config(annotatedAst, Stack([]), [])
+  in helper (Config(annotatedAst, Stack([]), []))
 ;;
 
 let lexbuf = Lexing.from_channel stdin in
 try
   while true do
     try
-      let theAst = MENHIR.prog LEX.token lexbuf 
-      and annotatedAst = annotate emptyNamespace theAst in (
+      let theAst = MENHIR.prog LEX.token lexbuf in
+      let annotatedAst = annotate emptyNamespace theAst in (
+        print_string "---=== Annoteated AST ===--- \n";
         prettyPrint 0 annotatedAst;
-        interpret annotatedAst
+        print_newline ();
+        print_string "---=== Go ===--- \n";
+        let (stack, heap) = interpret annotatedAst in (
+          print_newline ();
+          print_string "---=== Terminal state ===--- \n";
+          pprintVars heap stack
+        )
       )
     with Parse_error ->
       (
