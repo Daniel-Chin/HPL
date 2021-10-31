@@ -1,7 +1,7 @@
 (* File miniOO.ml *)
 
-(* let debug = false;; *)
-let debug = true;;
+let debug = false;;
+(* let debug = true;; *)
 
 open Parsing;;
 open Types;;
@@ -328,26 +328,27 @@ let rec helper obj_id_acc field_idt tva = (
   function
   | [] -> []
   | h :: t -> (
-    (if obj_id_acc = 0 then (
-      match h with
-      | JustVal(_) -> (
-        if field_idt = "val" then JustVal(tva) 
-        else raise OutOfHeapDom
-      )
-      | Everything(map) -> (
-        Everything(AnObject.add field_idt tva map)
-      )
-    ) else h) :: 
-    (helper (obj_id_acc - 1) field_idt tva t)
-    )
+    (
+      if obj_id_acc = 0 then (
+        match h with
+        | JustVal(_) -> (
+          if field_idt = "val" then JustVal(tva) 
+          else raise OutOfHeapDom
+        )
+        | Everything(map) -> (
+          Everything(AnObject.add field_idt tva map)
+        )
+      ) else h
+    ) :: (helper (obj_id_acc - 1) field_idt tva t)
+  )
 ) in helper obj_id field_idt tva heap
 ;;
 
 let heapGrow heap is_malloc = (
-  (
+  heap @ [
     if is_malloc then Everything(AnObject.empty) 
     else JustVal(theNull)
-  ) :: heap
+  ]
 );;
 
 let rec stackGet var_id = function
