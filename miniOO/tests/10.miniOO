@@ -1,0 +1,24 @@
+var X;
+  var Y;
+    {
+      {
+        malloc(X)
+      ;
+        malloc(Y)
+      }
+    ;
+      {
+        Y.theX = X
+      ;
+        {
+          if Y.theX == X Y.a = true else Y.a = false
+        ;
+          {
+            malloc(X)
+          ;
+            if Y.theX == X Y.b = false else Y.b = true
+          }
+        }
+      }
+    }
+THE_END
