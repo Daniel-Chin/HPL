@@ -716,7 +716,8 @@ let rec pprintObj heap depth already obj_id = (
         match value with
         | FieldValue(_) | IntValue(_) | Closure(_) -> printTva v
         | LocationValue(ObjectId(target_obj_id)) -> (
-          let _already = obj_id :: already in 
+          if target_obj_id = -1 then printTva v 
+          else let _already = obj_id :: already in 
           if List.mem target_obj_id _already 
           then (
             print_string "recursive <obj @ ";
@@ -740,7 +741,16 @@ let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
   print_string " (";
   print_int var_id; 
   print_string ")> = ";
-  pprintObj heap 1 [] obj_id
+  let tva_ = heapGet heap obj_id "val" in match tva_ with
+  | ValError -> failwith "Impossible"
+  | TaintMissed(value) -> (
+    match value with
+    | LocationValue(ObjectId(target_obj_id)) -> (
+      if target_obj_id = -1 then printTva tva_
+      else pprintObj heap 1 [] target_obj_id
+    )
+    | _ -> printTva tva_
+  )
 ) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
@@ -813,7 +823,7 @@ with
     print_string "Unknown error. Prabably parsing error? \n";
     print_string "lexbuf is at char # ";
     print_int lexbuf.lex_curr_pos;
-    print_string "\n (Use ctrl+alt+G in VSCode to seek char pos.)";
+    print_string "\n (Use ctrl+alt+G in VSCode to seek char pos.) \n";
     raise e
   )
 ;;
