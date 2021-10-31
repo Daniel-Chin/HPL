@@ -744,7 +744,9 @@ let interpret annotatedAst =
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
     print_newline;
-    print_string "ConfigError! \n";
+    print_string "ConfigError! ";
+    print_string msg;
+    print_newline;
     pprintVars heap stack
   )
   in helper Config(annotatedAst, Stack([]), [])
