@@ -1,7 +1,7 @@
 (* File miniOO.ml *)
 
-let debug = false;;
-(* let debug = true;; *)
+(* let debug = false;; *)
+let debug = true;;
 
 open Parsing;;
 open Types;;
@@ -777,7 +777,9 @@ let interpret do_debug annotatedAst =
       print_string "\n STACK \n";
       printStack stack;
       print_string "\n HEAP \n";
-      printHeap 0 heap
+      printHeap 0 heap;
+      print_string "\n AST \n";
+      prettyPrint 2 ast
     ) else pprintVars heap stack;
     let (op_str, config) = crank config in
     print_newline ();
