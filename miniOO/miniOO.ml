@@ -1,4 +1,8 @@
 (* File miniOO.ml *)
+
+(* let debug = false;; *)
+let debug = true;;
+
 open Parsing;;
 open Types;;
 
@@ -730,12 +734,12 @@ let rec pprintObj heap depth already obj_id = (
 );;
 
 let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
-  print_string "<";
+  print_string " <";
   print_string var_idt; 
   print_string " (";
   print_int var_id; 
   print_string ")> = ";
-  pprintObj heap 0 [] obj_id
+  pprintObj heap 1 [] obj_id
 ) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
@@ -793,7 +797,7 @@ try
         prettyPrint 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
-        interpret false annotatedAst
+        interpret debug annotatedAst
       )
     with Parse_error ->
       (
