@@ -626,9 +626,13 @@ let printTva = function
     print_newline ()
   )
   | LocationValue(ObjectId(target_obj_id)) -> (
-    print_string "<obj @ ";
-    print_int target_obj_id;
-    print_string "> \n"
+    if target_obj_id = -1 then (
+      print_string "`null` \n";
+    ) else (
+      print_string "<obj @ ";
+      print_int target_obj_id;
+      print_string "> \n"
+    )
   )
   | Closure(_) -> (
     print_string "some closure \n";
@@ -636,7 +640,7 @@ let printTva = function
 )
 ;;
 
-let rec printStack = let helper (var_id, obj_id, var_idt) = (
+let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
   print_string "<";
   print_string var_idt; 
   print_string " (";
@@ -644,21 +648,21 @@ let rec printStack = let helper (var_id, obj_id, var_idt) = (
   print_string ")>\t <obj @ ";
   print_int obj_id;
   print_string "> \n"
-) in function
+) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
   match h with
   | DeclFrame(binding)    -> helper binding
   | CallFrame(binding, _) -> helper binding
   ;
-  printStack t
+  printStack (Stack(t))
 )
 ;;
 
 let rec printHeap obj_id = function
 | [] -> ()
 | h :: t -> (
-  print_string "\t <obj @ ";
+  print_string "<obj @ ";
   print_int obj_id;
   print_string "> \n";
   match h with
@@ -726,27 +730,33 @@ let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
   | DeclFrame(binding)    -> helper binding
   | CallFrame(binding, _) -> helper binding
   ;
-  printStack t
+  pprintVars heap (Stack(t))
 )
 ;;
 
-let interpret annotatedAst = 
+let interpret do_debug annotatedAst = 
   let rec helper config = match config with
   | Config(ast, stack, heap) -> (
-    print_string "Crank ";
+    if do_debug then (
+      print_string "\nSTACK \n";
+      printStack stack;
+      print_string "\nHEAP \n";
+      printHeap 0 heap
+    ) else pprintVars heap stack;
+    print_string "\nCrank \n";
     helper (crank config)
   )
   | Halted(stack, heap) -> (
     print_newline ();
-    print_string "Halted. \n";
-    (stack, heap)
+    pprintVars heap stack;
+    print_string "\nHalted. \n";
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
     print_newline ();
-    print_string "ConfigError! ";
+    pprintVars heap stack;
+    print_string "\nConfigError! ";
     print_string msg;
     print_newline ();
-    (stack, heap)
   )
   in helper (Config(annotatedAst, Stack([]), []))
 ;;
@@ -761,11 +771,7 @@ try
         prettyPrint 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
-        let (stack, heap) = interpret annotatedAst in (
-          print_newline ();
-          print_string "---=== Terminal state ===--- \n";
-          pprintVars heap stack
-        )
+        interpret true annotatedAst
       )
     with Parse_error ->
       (

@@ -1,0 +1,8 @@
+var X;
+  var Y;
+    {
+      X = 5
+    ;
+      Y = X - 8
+    }
+THE_END
