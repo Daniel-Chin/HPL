@@ -194,85 +194,85 @@ let rec annotate namespace = function
     let new_namespace, new_id = declare name namespace in
     DecVar(
       VarAnnotation(name, new_id), 
-        annotate new_namespace cmd
+      annotate new_namespace cmd
+    )
+  )
+  | ProcCall(proc, arg) -> ProcCall(
+    annotate namespace proc, 
+    annotate namespace arg
+  )
+  | Malloc(VarAnnotation(name, _)) -> (
+    match namespace name with
+      | None -> raise (UsingUndeclaredVariable name)
+      | Some id -> Malloc(VarAnnotation(name, id))
+  )
+  | VarAssign(VarAnnotation(name, _), expr) -> (
+    match namespace name with
+      | None -> raise (UsingUndeclaredVariable name)
+      | Some id -> VarAssign(
+        VarAnnotation(name, id), 
+        annotate namespace expr
       )
+  )
+  | FirstThen(cmd1, cmd2) -> FirstThen(
+    annotate namespace cmd1, 
+    annotate namespace cmd2
+  )
+  | FieldAssign(obj, field, expr) -> FieldAssign(
+    annotate namespace obj, 
+    annotate namespace field, 
+    annotate namespace expr
+  )
+  | Skip -> Skip
+  | WhileLoop(condition, cmd) -> WhileLoop(
+    annotate namespace condition, 
+    annotate namespace cmd 
+  )
+  | IfThenElse(condition, thenClause, elseClause) -> IfThenElse(
+    annotate namespace condition, 
+    annotate namespace thenClause, 
+    annotate namespace elseClause
+  )
+  | Parallel(cmd1, cmd2) -> Parallel(
+    annotate namespace cmd1, 
+    annotate namespace cmd2
+  )
+  | Atomic(cmd) -> Atomic(
+    annotate namespace cmd
+  )
+  | FieldIdt(field_idt) -> FieldIdt(field_idt)
+  | LiteralNum(x) -> LiteralNum(x)
+  | Minus(expr1, expr2) -> Minus(
+    annotate namespace expr1, 
+    annotate namespace expr2
+  )
+  | Null -> Null
+  | VarIdt(VarAnnotation(name, _)) -> (
+    match namespace name with
+      | None -> raise (UsingUndeclaredVariable name)
+      | Some id -> VarIdt(VarAnnotation(name, id))
+  )
+  | FieldSeek(obj, field) -> FieldSeek(
+    annotate namespace obj, 
+    annotate namespace field
+  )
+  | ProcDef(VarAnnotation(name, _), cmd) -> (
+    let new_namespace, new_id = declare name namespace in
+    ProcDef(
+      VarAnnotation(name, new_id), 
+      annotate new_namespace cmd
     )
-    | ProcCall(proc, arg) -> ProcCall(
-      annotate namespace proc, 
-      annotate namespace arg
-    )
-    | Malloc(VarAnnotation(name, _)) -> (
-      match namespace name with
-        | None -> raise (UsingUndeclaredVariable name)
-        | Some id -> Malloc(VarAnnotation(name, id))
-    )
-    | VarAssign(VarAnnotation(name, _), expr) -> (
-      match namespace name with
-        | None -> raise (UsingUndeclaredVariable name)
-        | Some id -> VarAssign(
-          VarAnnotation(name, id), 
-          annotate namespace expr
-        )
-    )
-    | FirstThen(cmd1, cmd2) -> FirstThen(
-      annotate namespace cmd1, 
-      annotate namespace cmd2
-    )
-    | FieldAssign(obj, field, expr) -> FieldAssign(
-      annotate namespace obj, 
-      annotate namespace field, 
-      annotate namespace expr
-    )
-    | Skip -> Skip
-    | WhileLoop(condition, cmd) -> WhileLoop(
-      annotate namespace condition, 
-      annotate namespace cmd 
-    )
-    | IfThenElse(condition, thenClause, elseClause) -> IfThenElse(
-      annotate namespace condition, 
-      annotate namespace thenClause, 
-      annotate namespace elseClause
-    )
-    | Parallel(cmd1, cmd2) -> Parallel(
-      annotate namespace cmd1, 
-      annotate namespace cmd2
-    )
-    | Atomic(cmd) -> Atomic(
-      annotate namespace cmd
-    )
-    | FieldIdt(field_idt) -> FieldIdt(field_idt)
-    | LiteralNum(x) -> LiteralNum(x)
-    | Minus(expr1, expr2) -> Minus(
-      annotate namespace expr1, 
-      annotate namespace expr2
-    )
-    | Null -> Null
-    | VarIdt(VarAnnotation(name, _)) -> (
-      match namespace name with
-        | None -> raise (UsingUndeclaredVariable name)
-        | Some id -> VarIdt(VarAnnotation(name, id))
-    )
-    | FieldSeek(obj, field) -> FieldSeek(
-      annotate namespace obj, 
-      annotate namespace field
-    )
-    | ProcDef(VarAnnotation(name, _), cmd) -> (
-      let new_namespace, new_id = declare name namespace in
-      ProcDef(
-        VarAnnotation(name, new_id), 
-        annotate new_namespace cmd
-      )
-    )
-    | LiteralBool(x) -> LiteralBool(x)
-    | IsEqual(expr1, expr2) -> IsEqual(
-      annotate namespace expr1, 
-      annotate namespace expr2
-    )
-    | IsLessThan(expr1, expr2) -> IsLessThan(
-      annotate namespace expr1, 
-      annotate namespace expr2
-    )
-    | Block(_) -> failwith "Cannot annotate Block"
+  )
+  | LiteralBool(x) -> LiteralBool(x)
+  | IsEqual(expr1, expr2) -> IsEqual(
+    annotate namespace expr1, 
+    annotate namespace expr2
+  )
+  | IsLessThan(expr1, expr2) -> IsLessThan(
+    annotate namespace expr1, 
+    annotate namespace expr2
+  )
+  | Block(_) -> failwith "Cannot annotate Block"
 ;;
 
 (* Semantic Domain *)
