@@ -728,10 +728,11 @@ let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
 ) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
-  match h with
-  | DeclFrame(binding)    -> helper binding
-  | CallFrame(binding, _) -> helper binding
-  ;
+  (
+    match h with
+    | DeclFrame(binding)    -> helper binding
+    | CallFrame(binding, _) -> helper binding
+  );
   pprintVars heap (Stack(t))
 )
 ;;
@@ -781,7 +782,7 @@ try
         prettyPrint 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
-        interpret true annotatedAst
+        interpret false annotatedAst
       )
     with Parse_error ->
       (
