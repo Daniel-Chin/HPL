@@ -667,8 +667,8 @@ let printTva = function
 )
 ;;
 
-let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
-  print_string "  ";
+let rec pprintStack depth stack = let helper (var_id, obj_id, var_idt) = (
+  print_string (String.make depth ' ');
   printVarAnnotation (VarAnnotation(var_idt, var_id)); 
   print_string "\t <obj @ ";
   print_int obj_id;
@@ -679,9 +679,14 @@ let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
   (
     match h with
     | DeclFrame(binding)    -> helper binding
-    | CallFrame(binding, _) -> helper binding
+    | CallFrame(binding, stashedStack) -> (
+      helper binding;
+      print_string (String.make (depth + 1) ' ');
+      print_string "Stashed: \n";
+      pprintStack (depth + 2) stashedStack
+    )
   );
-  printStack (Stack(t))
+  pprintStack depth (Stack(t))
 )
 ;;
 
@@ -775,7 +780,7 @@ let interpret do_debug annotatedAst =
   | Config(ast, stack, heap) -> (
     if do_debug then (
       print_string "\n STACK \n";
-      printStack stack;
+      pprintStack 2 stack;
       print_string "\n HEAP \n";
       printHeap 0 heap;
       print_string "\n AST \n";
@@ -790,7 +795,7 @@ let interpret do_debug annotatedAst =
   | Halted(stack, heap) -> (
     if do_debug then (
       print_string "\n STACK \n";
-      printStack stack;
+      pprintStack 2 stack;
       print_string "\n HEAP \n";
       printHeap 0 heap
     );
@@ -799,7 +804,7 @@ let interpret do_debug annotatedAst =
   | ConfigError(msg, (ast, stack, heap)) -> (
     if do_debug then (
       print_string "\n STACK \n";
-      printStack stack;
+      pprintStack 2 stack;
       print_string "\n HEAP \n";
       printHeap 0 heap
     );
