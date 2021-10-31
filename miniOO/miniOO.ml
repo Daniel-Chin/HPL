@@ -6,18 +6,18 @@ let debug = false;;
 open Parsing;;
 open Types;;
 
+let printVarAnnotation (VarAnnotation(name, id)) = (
+  print_string "|var_";
+  print_int id;
+  print_string " \"";
+  print_string name;
+  print_string "\"|"
+);;
+
 let rec prettyPrint depth = 
   let indent () = print_string (
     String.make depth ' '
-  ) and printVarAnnotation = function
-    | VarAnnotation(name, id) -> (
-      print_string "<";
-      print_string name;
-      print_string " (";
-      print_int id;
-      print_string ")>"
-    )
-  in function
+  ) in function
     | DecVar(var_annotation, cmd) -> (
       indent ();
       print_string "declare var "; 
@@ -485,62 +485,67 @@ let rec crank = function
   match ctrl with 
   | DecVar(VarAnnotation(var_idt, var_id), cmd) -> (
     let obj_id = getNewObjId () in
-    match stack with
-    | Stack(lst_stack) -> Config(
-      Block(cmd), 
-      Stack(DeclFrame(var_id, obj_id, var_idt) :: lst_stack), 
-      heapGrow heap false
+    let Stack(lst_stack) = stack in (
+      "Declare variable \"" ^ var_idt ^ "\"", 
+      Config(
+        Block(cmd), 
+        Stack(DeclFrame(var_id, obj_id, var_idt) :: lst_stack), 
+        heapGrow heap false
+      )
     )
   )
   | Block(cmd) -> (
     match cmd with 
-    | Hold -> Halted((
-      match stack with
-      | Stack(lst_stack) -> (
+    | Hold -> ("Pop *block*", Halted((
+      let Stack(lst_stack) = stack in (
         match lst_stack with
         | [] -> failwith "Impossible to reach 26004978165"
         | DeclFrame(_) :: t -> Stack(t)
         | CallFrame(_, stashedStack) :: _ -> stashedStack
       )
-    ), heap)
+    ), heap))
     | _ -> (
-      match crank (Config(cmd, stack, heap)) with
-      | ConfigError(x) -> ConfigError(x)
-      | Config(cmd_p, stack_p, heap_p) -> Config(
+      let (op_str, config) = crank (Config(cmd, stack, heap)) in
+      match config with
+      | ConfigError(x) -> (op_str, ConfigError(x))
+      | Config(cmd_p, stack_p, heap_p) -> (op_str, Config(
         Block(cmd_p), stack_p, heap_p
-      )
-      | Halted(stack_p, heap_p) -> Config(
+      ))
+      | Halted(stack_p, heap_p) -> (op_str, Config(
         Block(Hold), stack_p, heap_p
-      )
+      ))
     )
   )
   | ProcCall(proc, arg) -> (
     let tva_proc = eval stack heap proc
     and tva_arg  = eval stack heap arg in (
       match tva_proc with
-      | ValError -> ConfigError("Calling `error` as proc", (ctrl, stack, heap))
+      | ValError -> ("", ConfigError("Calling `error` as proc", (ctrl, stack, heap)))
       | TaintMissed(value) -> (
         match value with
         | Closure({var_id = var_id; cmd = cmd; stack = defStack}) -> (
           let obj_id = getNewObjId () in
           match defStack with
-          | Stack(lst_stack) -> Config(
+          | Stack(lst_stack) -> ("Call proc", Config(
             Block(cmd), 
             Stack(CallFrame((var_id, obj_id, "__FuncArg__"), stack) :: lst_stack), 
             heapSet (heapGrow heap false) obj_id "val" tva_arg
-          )
+          ))
         )
-        | _ -> ConfigError("Calling a non-proc", (ctrl, stack, heap))
+        | _ -> ("", ConfigError("Calling a non-proc", (ctrl, stack, heap)))
       )
     )
   )
-  | VarAssign(VarAnnotation(_, var_id), expr) -> (
+  | VarAssign(VarAnnotation(var_idt, var_id), expr) -> (
     match eval stack heap expr with
-    | ValError -> ConfigError("Cannot assign `error` to variable", (ctrl, stack, heap))
+    | ValError -> ("", ConfigError("Cannot assign `error` to variable", (ctrl, stack, heap)))
     | TaintMissed(value) -> (
-      let obj_id = stackGet var_id stack in Halted(
-        stack, 
-        heapSet heap obj_id "val" (TaintMissed(value))
+      let obj_id = stackGet var_id stack in (
+        "Assign to variable \"" ^ var_idt ^ "\"", 
+        Halted(
+          stack, 
+          heapSet heap obj_id "val" (TaintMissed(value))
+        )
       )
     )
   )
@@ -549,79 +554,85 @@ let rec crank = function
     and tva_f = eval stack heap field
     and tva_e = eval stack heap expr in 
       match tva_l with
-      | ValError -> ConfigError("During field assignment, the l.h.s. of the dot is `error`", (ctrl, stack, heap))
+      | ValError -> ("", ConfigError("During field assignment, the l.h.s. of the dot is `error`", (ctrl, stack, heap)))
       | TaintMissed(value_l) -> (
         match tva_f with
-        | ValError -> ConfigError("During field assignment, the r.h.s. of the dot is `error`", (ctrl, stack, heap))
+        | ValError -> ("", ConfigError("During field assignment, the r.h.s. of the dot is `error`", (ctrl, stack, heap)))
         | TaintMissed(value_f) -> (
           match value_l with
           | LocationValue(ObjectId(obj_id)) -> (
             match value_f with
             | FieldValue(field_idt) -> (
               try
-                Halted(
+                ("Field assignment", Halted(
                   stack, 
                   heapSet heap obj_id field_idt tva_e
-                )
-              with OutOfHeapDom -> ConfigError("Field assignment out of heap domain", (ctrl, stack, heap))
+                ))
+              with OutOfHeapDom -> ("", ConfigError("Field assignment out of heap domain", (ctrl, stack, heap)))
             )
-            | _ -> ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap))
+            | _ -> ("", ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap)))
           )
-          | _ -> ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap))
+          | _ -> ("", ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap)))
         )
       )
   )
-  | Malloc(VarAnnotation(_, var_id)) -> (
+  | Malloc(VarAnnotation(var_idt, var_id)) -> (
     let obj_id = getNewObjId () in
     let heap_p = heapSet heap (
       stackGet var_id stack
     ) "val" (TaintMissed(LocationValue(ObjectId(obj_id)))) in
-    Halted(
+    ("Malloc \"" ^ var_idt ^ "\"", Halted(
       stack, 
       heapGrow heap_p true
-    )
+    ))
   )
-  | Skip -> Halted(stack, heap)
+  | Skip -> ("Skip", Halted(stack, heap))
   | FirstThen(cmd1, cmd2) -> (
-    match crank (Config(cmd1, stack, heap)) with
-    | ConfigError(x) -> ConfigError(x)
-    | Config(cmd1_p, stack_p, heap_p) -> Config(
+    let (op_str, config) = crank (Config(cmd1, stack, heap)) in
+    match config with
+    | ConfigError(x) -> (op_str, ConfigError(x))
+    | Config(cmd1_p, stack_p, heap_p) -> (op_str, Config(
       FirstThen(cmd1_p, cmd2), stack_p, heap_p
-    )
-    | Halted(stack_p, heap_p) -> Config(cmd2, stack_p, heap_p)
+    ))
+    | Halted(stack_p, heap_p) -> (op_str, Config(cmd2, stack_p, heap_p))
   )
   | WhileLoop(condition, cmd) -> (
     match evalBool stack heap condition with
-    | BoolError -> ConfigError("while loop condition is `error`", (ctrl, stack, heap))
+    | BoolError -> ("", ConfigError("while loop condition is `error`", (ctrl, stack, heap)))
     | True -> (
-      Config((FirstThen(cmd, WhileLoop(condition, cmd))), stack, heap)
+      ("While loop promotes body", Config(
+        (FirstThen(cmd, WhileLoop(condition, cmd))), 
+        stack, heap
+      ))
     )
-    | False -> Halted(stack, heap)
+    | False -> ("While loop ends", Halted(stack, heap))
   )
   | IfThenElse(condition, thenClause, elseClause) -> (
     match evalBool stack heap condition with
-    | BoolError -> ConfigError("if statement condition is `error`", (ctrl, stack, heap))
-    | True -> Config(thenClause, stack, heap)
-    | False -> Config(elseClause, stack, heap)
+    | BoolError -> ("", ConfigError("if statement condition is `error`", (ctrl, stack, heap)))
+    | True -> ("If selects then", Config(thenClause, stack, heap))
+    | False -> ("If selects else", Config(elseClause, stack, heap))
   )
   | Parallel(cmd1, cmd2) -> (
     let helper cmd_a cmd_b = (
-      match crank (Config(cmd_a, stack, heap)) with
-      | ConfigError(x) -> ConfigError(x)
-      | Config(cmd_a_p, stack_p, heap_p) -> Config(
+      let (op_str, config) = crank (Config(cmd_a, stack, heap)) in
+      match config with
+      | ConfigError(x) -> (op_str, ConfigError(x))
+      | Config(cmd_a_p, stack_p, heap_p) -> (op_str, Config(
         Parallel(cmd_a_p, cmd_b), stack_p, heap_p
-      )
-      | Halted(stack_p, heap_p) -> Config(cmd_b, stack_p, heap_p)
+      ))
+      | Halted(stack_p, heap_p) -> (op_str, Config(cmd_b, stack_p, heap_p))
     ) in if Random.bool () 
     then helper cmd1 cmd2
     else helper cmd2 cmd1
   )
   | Atomic(cmd) -> (
     let rec helper cmd_x stack_x heap_x = (
-      match crank (Config(cmd_x, stack_x, heap_x)) with
-      | ConfigError(x) -> ConfigError(x)
+      let (_, config) = crank (Config(cmd_x, stack_x, heap_x)) in
+      match config with
+      | ConfigError(x) -> ("", ConfigError(x))
       | Config(cmd_p, stack_p, heap_p) -> helper cmd_p stack_p heap_p
-      | Halted(stack_p, heap_p) -> Halted(stack_p, heap_p)
+      | Halted(stack_p, heap_p) -> ("Execute atom", Halted(stack_p, heap_p))
     ) in helper cmd stack heap
   )
   | _ -> failwith "Error 2375098742307"   (* Impossible, thanks to parser *)
@@ -657,11 +668,9 @@ let printTva = function
 ;;
 
 let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
-  print_string "  <";
-  print_string var_idt; 
-  print_string " (";
-  print_int var_id; 
-  print_string ")>\t <obj @ ";
+  print_string "  ";
+  printVarAnnotation (VarAnnotation(var_idt, var_id)); 
+  print_string "\t <obj @ ";
   print_int obj_id;
   print_string "> \n"
 ) and Stack(lst_stack) = stack in match lst_stack with
@@ -736,11 +745,9 @@ let rec pprintObj heap depth already obj_id = (
 );;
 
 let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
-  print_string " <";
-  print_string var_idt; 
-  print_string " (";
-  print_int var_id; 
-  print_string ")> = ";
+  print_string " ";
+  printVarAnnotation (VarAnnotation(var_idt, var_id));
+  print_string " = ";
   let tva_ = heapGet heap obj_id "val" in match tva_ with
   | ValError -> failwith "Impossible"
   | TaintMissed(value) -> (
@@ -772,8 +779,11 @@ let interpret do_debug annotatedAst =
       print_string "\n HEAP \n";
       printHeap 0 heap
     ) else pprintVars heap stack;
-    print_string "\nCrank \n";
-    helper (crank config)
+    let (op_str, config) = crank config in
+    print_newline ();
+    print_string op_str;
+    print_newline ();
+    helper config
   )
   | Halted(stack, heap) -> (
     if do_debug then (
