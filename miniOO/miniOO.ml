@@ -705,7 +705,9 @@ let rec pprintObj heap depth already obj_id = (
   match List.nth heap obj_id with
   | JustVal(tva_) -> printTva tva_
   | Everything(map) -> (
-    print_string "{ \n";
+    print_string "<obj @ ";
+    print_int obj_id;
+    print_string "> { \n";
     AnObject.iter (fun k v -> (
       print_string (String.make (depth + 1) ' ');
       print_string k;
@@ -729,9 +731,7 @@ let rec pprintObj heap depth already obj_id = (
       )
     )) map;
     print_string (String.make depth ' ');
-    print_string "} @ ";
-    print_int obj_id;
-    print_newline ()
+    print_string "} \n"
   )
 );;
 

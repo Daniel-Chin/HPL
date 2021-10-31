@@ -8,12 +8,12 @@ var X;
       }
     ;
       {
-        X.ans = if x.this == null true else false
+        if X.this == null X.ans = 1 else X.ans = 0
       ;
         {
           Y = 3
         ;
-          X.arith = if Y < 1 0 else Y.val
+          if Y < 1 X.arith = 0 else X.arith = Y
         }
       }
     }

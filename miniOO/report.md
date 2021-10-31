@@ -5,6 +5,14 @@ Specialties:
     ||| (parallelism) randomly swaps the two sub-controls for each transition. Decision is based on random bools from the OS. 
 maybe specialties:
     `val` field is exposed to users of miniOO. 
+    Parsing error
+    ```
+    Unknown error. Prabably parsing error?
+    lexbuf is at char # 120
+    (Use ctrl+alt+G in VSCode to seek char pos.)
+    Fatal error: exception MENHIR.MenhirBasics.Error
+    ```
+    find typos this way. 
 tricks
     var_name is replaced with var_id
     *Loc* is object_id
