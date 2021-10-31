@@ -11,12 +11,12 @@ var X;
         Y.theX = X
       ;
         {
-          if Y.theX == X Y.a = 2333 else Y.a = 0
+          X.theY = Y
         ;
           {
-            malloc(X)
+            X.six = 6
           ;
-            if Y.theX == X Y.b = 0 else Y.b = 2333
+            Y.nine = 9
           }
         }
       }

@@ -1,3 +1,7 @@
 var X;
-  X.true = 9
+  {
+    malloc(X)
+  ;
+    X.null = 9
+  }
 THE_END

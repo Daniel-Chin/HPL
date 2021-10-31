@@ -1,0 +1,11 @@
+var X;
+  {
+    malloc(X)
+  ;
+    {
+      X.self = X
+    ;
+      X.child = 666
+    }
+  }
+THE_END
