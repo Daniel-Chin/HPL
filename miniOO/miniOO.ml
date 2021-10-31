@@ -641,7 +641,7 @@ let printTva = function
 ;;
 
 let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
-  print_string "<";
+  print_string "  <";
   print_string var_idt; 
   print_string " (";
   print_int var_id; 
@@ -651,10 +651,11 @@ let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
 ) and Stack(lst_stack) = stack in match lst_stack with
 | [] -> ()
 | h :: t -> (
-  match h with
-  | DeclFrame(binding)    -> helper binding
-  | CallFrame(binding, _) -> helper binding
-  ;
+  (
+    match h with
+    | DeclFrame(binding)    -> helper binding
+    | CallFrame(binding, _) -> helper binding
+  );
   printStack (Stack(t))
 )
 ;;
@@ -662,23 +663,24 @@ let rec printStack stack = let helper (var_id, obj_id, var_idt) = (
 let rec printHeap obj_id = function
 | [] -> ()
 | h :: t -> (
-  print_string "<obj @ ";
+  print_string "  <obj @ ";
   print_int obj_id;
   print_string "> \n";
-  match h with
-  | JustVal(tVal) -> (
-    print_string "  val : ";
-    printTva tVal
-  )
-  | Everything(map) -> (
-    AnObject.iter (fun key value -> (
-      print_string "  ";
-      print_string key;
-      print_string " : ";
-      printTva value
-    )) map
-  )
-  ;
+  (
+    match h with
+    | JustVal(tVal) -> (
+      print_string "   val : ";
+      printTva tVal
+    )
+    | Everything(map) -> (
+      AnObject.iter (fun key value -> (
+        print_string "  ";
+        print_string key;
+        print_string " : ";
+        printTva value
+      )) map
+    )
+  );
   printHeap (obj_id + 1) t
 )
 ;;
@@ -738,25 +740,33 @@ let interpret do_debug annotatedAst =
   let rec helper config = match config with
   | Config(ast, stack, heap) -> (
     if do_debug then (
-      print_string "\nSTACK \n";
+      print_string "\n STACK \n";
       printStack stack;
-      print_string "\nHEAP \n";
+      print_string "\n HEAP \n";
       printHeap 0 heap
     ) else pprintVars heap stack;
     print_string "\nCrank \n";
     helper (crank config)
   )
   | Halted(stack, heap) -> (
-    print_newline ();
-    pprintVars heap stack;
-    print_string "\nHalted. \n";
+    if do_debug then (
+      print_string "\n STACK \n";
+      printStack stack;
+      print_string "\n HEAP \n";
+      printHeap 0 heap
+    );
+    print_string "\nHalted. \n"
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
-    print_newline ();
-    pprintVars heap stack;
+    if do_debug then (
+      print_string "\n STACK \n";
+      printStack stack;
+      print_string "\n HEAP \n";
+      printHeap 0 heap
+    );
     print_string "\nConfigError! ";
     print_string msg;
-    print_newline ();
+    print_newline ()
   )
   in helper (Config(annotatedAst, Stack([]), []))
 ;;
@@ -767,7 +777,7 @@ try
     try
       let theAst = MENHIR.prog LEX.token lexbuf in
       let annotatedAst = annotate emptyNamespace theAst in (
-        print_string "---=== Annoteated AST ===--- \n";
+        print_string "---=== Annoteated AST ===--- \n\n";
         prettyPrint 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
