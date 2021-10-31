@@ -383,19 +383,16 @@ let rec eval stack heap = function
     | ValError -> ValError
     | TaintMissed(value) -> (
       match value with
-      | LocationValue(location) -> (
-        match location with
-        | ObjectId(obj_id) -> (
-          if obj_id != -1 then (
-            match tva_f with
-              | ValError -> ValError
-              | TaintMissed(value) -> match value with
-                | FieldValue(field_idt) -> (
-                  heapGet heap obj_id field_idt
-                )
-                | _ -> ValError
-          ) else ValError
-        )
+      | LocationValue(ObjectId(obj_id)) -> (
+        if obj_id != -1 then (
+          match tva_f with
+            | ValError -> ValError
+            | TaintMissed(value) -> match value with
+              | FieldValue(field_idt) -> (
+                heapGet heap obj_id field_idt
+              )
+              | _ -> ValError
+        ) else ValError
       )
       | _ -> ValError
     )
@@ -626,9 +623,9 @@ let printTva = function
   | IntValue(x) -> (
     print_string "int ";
     print_int x;
-    print_newline
+    print_newline ()
   )
-  | LocationValue(target_obj_id) -> (
+  | LocationValue(ObjectId(target_obj_id)) -> (
     print_string "<obj @ ";
     print_int target_obj_id;
     print_string "> \n"
@@ -669,7 +666,7 @@ let rec printHeap obj_id = function
     printTva tVal
   )
   | Everything(map) -> (
-    AnObject.iter (function key value -> (
+    AnObject.iter (fun key value -> (
       print_string "  ";
       print_string key;
       print_string " : ";
@@ -686,7 +683,7 @@ let rec pprintObj heap depth already obj_id = (
   | JustVal(tva_) -> printTva tva_
   | Everything(map) -> (
     print_string "{ \n";
-    AnObject.iter (function k v -> (
+    AnObject.iter (fun k v -> (
       print_string String.make (depth + 1) ' ';
       print_string k;
       print_string " : ";
@@ -695,7 +692,7 @@ let rec pprintObj heap depth already obj_id = (
       | TaintMissed(value) -> (
         match value with
         | FieldValue(_) | IntValue(_) | Closure(_) -> printTva v
-        | LocationValue(target_obj_id) -> (
+        | LocationValue(ObjectId(target_obj_id)) -> (
           let _already = obj_id :: already in 
           if List.mem target_obj_id _already 
           then (
@@ -710,7 +707,7 @@ let rec pprintObj heap depth already obj_id = (
     print_string String.make depth ' ';
     print_string "} @ ";
     print_int obj_id;
-    print_newline
+    print_newline ()
   )
 );;
 
@@ -738,15 +735,15 @@ let interpret annotatedAst =
     helper (crank config)
   )
   | Halted(stack, heap) -> (
-    print_newline;
+    print_newline ();
     print_string "Halted. \n";
     pprintVars heap stack
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
-    print_newline;
+    print_newline ();
     print_string "ConfigError! ";
     print_string msg;
-    print_newline;
+    print_newline ();
     pprintVars heap stack
   )
   in helper Config(annotatedAst, Stack([]), [])
