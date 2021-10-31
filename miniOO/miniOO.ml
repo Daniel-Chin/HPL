@@ -1,7 +1,7 @@
 (* File miniOO.ml *)
 
-(* let debug = false;; *)
-let debug = true;;
+let debug = false;;
+(* let debug = true;; *)
 
 open Parsing;;
 open Types;;
@@ -520,7 +520,7 @@ let rec crank = function
     let tva_proc = eval stack heap proc
     and tva_arg  = eval stack heap arg in (
       match tva_proc with
-      | ValError -> ("", ConfigError("Calling `error` as proc", (ctrl, stack, heap)))
+      | ValError -> ("Call proc", ConfigError("Calling `error` as proc", (ctrl, stack, heap)))
       | TaintMissed(value) -> (
         match value with
         | Closure({var_id = var_id; cmd = cmd; stack = defStack}) -> (
@@ -532,13 +532,13 @@ let rec crank = function
             heapSet (heapGrow heap false) obj_id "val" tva_arg
           ))
         )
-        | _ -> ("", ConfigError("Calling a non-proc", (ctrl, stack, heap)))
+        | _ -> ("Call proc", ConfigError("Calling a non-proc", (ctrl, stack, heap)))
       )
     )
   )
   | VarAssign(VarAnnotation(var_idt, var_id), expr) -> (
     match eval stack heap expr with
-    | ValError -> ("", ConfigError("Cannot assign `error` to variable", (ctrl, stack, heap)))
+    | ValError -> ("Assign to variable", ConfigError("Cannot assign `error` to variable", (ctrl, stack, heap)))
     | TaintMissed(value) -> (
       let obj_id = stackGet var_id stack in (
         "Assign to variable \"" ^ var_idt ^ "\"", 
@@ -554,25 +554,26 @@ let rec crank = function
     and tva_f = eval stack heap field
     and tva_e = eval stack heap expr in 
       match tva_l with
-      | ValError -> ("", ConfigError("During field assignment, the l.h.s. of the dot is `error`", (ctrl, stack, heap)))
+      | ValError -> ("Field assignment", ConfigError("During field assignment, the l.h.s. of the dot is `error`", (ctrl, stack, heap)))
       | TaintMissed(value_l) -> (
         match tva_f with
-        | ValError -> ("", ConfigError("During field assignment, the r.h.s. of the dot is `error`", (ctrl, stack, heap)))
+        | ValError -> ("Field assignment", ConfigError("During field assignment, the r.h.s. of the dot is `error`", (ctrl, stack, heap)))
         | TaintMissed(value_f) -> (
           match value_l with
           | LocationValue(ObjectId(obj_id)) -> (
-            match value_f with
+            if obj_id == -1 then ("Field assignment", ConfigError("During field assignment, the l.h.s. of the dot is `null`", (ctrl, stack, heap)))
+            else match value_f with
             | FieldValue(field_idt) -> (
               try
                 ("Field assignment", Halted(
                   stack, 
                   heapSet heap obj_id field_idt tva_e
                 ))
-              with OutOfHeapDom -> ("", ConfigError("Field assignment out of heap domain", (ctrl, stack, heap)))
+              with OutOfHeapDom -> ("Field Assignment", ConfigError("Field assignment out of heap domain", (ctrl, stack, heap)))
             )
-            | _ -> ("", ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap)))
+            | _ -> ("Field assignment", ConfigError("During field assignment, the r.h.s. of the dot is non-field", (ctrl, stack, heap)))
           )
-          | _ -> ("", ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap)))
+          | _ -> ("Field assignment", ConfigError("During field assignment, the l.h.s. of the dot is non-location", (ctrl, stack, heap)))
         )
       )
   )
@@ -598,7 +599,7 @@ let rec crank = function
   )
   | WhileLoop(condition, cmd) -> (
     match evalBool stack heap condition with
-    | BoolError -> ("", ConfigError("while loop condition is `error`", (ctrl, stack, heap)))
+    | BoolError -> ("While loop", ConfigError("while loop condition is `error`", (ctrl, stack, heap)))
     | True -> (
       ("While loop promotes body", Config(
         (FirstThen(cmd, WhileLoop(condition, cmd))), 
@@ -609,9 +610,9 @@ let rec crank = function
   )
   | IfThenElse(condition, thenClause, elseClause) -> (
     match evalBool stack heap condition with
-    | BoolError -> ("", ConfigError("if statement condition is `error`", (ctrl, stack, heap)))
-    | True -> ("If selects then", Config(thenClause, stack, heap))
-    | False -> ("If selects else", Config(elseClause, stack, heap))
+    | BoolError -> ("If clause", ConfigError("if statement condition is `error`", (ctrl, stack, heap)))
+    | True -> ("If clause selects then", Config(thenClause, stack, heap))
+    | False -> ("If clause selects else", Config(elseClause, stack, heap))
   )
   | Parallel(cmd1, cmd2) -> (
     let helper cmd_a cmd_b = (
@@ -630,7 +631,7 @@ let rec crank = function
     let rec helper cmd_x stack_x heap_x = (
       let (_, config) = crank (Config(cmd_x, stack_x, heap_x)) in
       match config with
-      | ConfigError(x) -> ("", ConfigError(x))
+      | ConfigError(x) -> ("Atom", ConfigError(x))
       | Config(cmd_p, stack_p, heap_p) -> helper cmd_p stack_p heap_p
       | Halted(stack_p, heap_p) -> ("Execute atom", Halted(stack_p, heap_p))
     ) in helper cmd stack heap
