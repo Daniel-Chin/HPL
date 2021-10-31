@@ -10,7 +10,7 @@ var X;
       {
         X.Y = proc I : X.otherField = I - 1
       ;
-        X.someFeild(7 - 4)
+        X.someField(7 - 4)
       }
     }
 THE_END
