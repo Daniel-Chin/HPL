@@ -1,10 +1,12 @@
 (* File miniOO.ml *)
 
-let debug = false;;
-(* let debug = true;; *)
+let verbose = false;;
+(* let verbose = true;; *)
 
 open Parsing;;
 open Types;;
+
+Random.self_init ();;
 
 let printVarAnnotation (VarAnnotation(name, id)) = (
   print_string "|var_";
@@ -776,10 +778,10 @@ let rec pprintVars heap stack = let helper (var_id, obj_id, var_idt) = (
 )
 ;;
 
-let interpret do_debug annotatedAst = 
+let interpret annotatedAst = 
   let rec helper config = match config with
   | Config(ast, stack, heap) -> (
-    if do_debug then (
+    if verbose then (
       print_string "\n STACK \n";
       pprintStack 2 stack;
       print_string "\n HEAP \n";
@@ -794,7 +796,7 @@ let interpret do_debug annotatedAst =
     helper config
   )
   | Halted(stack, heap) -> (
-    if do_debug then (
+    if verbose then (
       print_string "\n STACK \n";
       pprintStack 2 stack;
       print_string "\n HEAP \n";
@@ -803,7 +805,7 @@ let interpret do_debug annotatedAst =
     print_string "\nHalted. \n"
   )
   | ConfigError(msg, (ast, stack, heap)) -> (
-    if do_debug then (
+    if verbose then (
       print_string "\n STACK \n";
       pprintStack 2 stack;
       print_string "\n HEAP \n";
@@ -826,7 +828,7 @@ try
         prettyPrint 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
-        interpret debug annotatedAst
+        interpret annotatedAst
       )
     with Parse_error ->
       (
