@@ -1,0 +1,20 @@
+var X;
+  var Y;
+    {
+      {
+        malloc(X)
+      ;
+        X.this = X.that
+      }
+    ;
+      {
+        X.ans = if x.this == null true else false
+      ;
+        {
+          Y = 3
+        ;
+          X.arith = if Y < 1 0 else Y.val
+        }
+      }
+    }
+THE_END

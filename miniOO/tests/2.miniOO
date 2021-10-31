@@ -1,0 +1,16 @@
+var F;
+  var Ans;
+    {
+      {
+        Ans = 0
+      ;
+        F = proc X : if X == 0 skip else {
+          Ans = Ans - X
+        ;
+          F(X - 1)
+        }
+      }
+    ;
+      F = F(100)
+    }
+THE_END

@@ -1,0 +1,24 @@
+var X;
+  var Y;
+    {
+      {
+        malloc(X)
+      ;
+        malloc(Y)
+      }
+    ;
+      {
+        {
+          X.theY = Y
+        ;
+          Y.nine = 9
+        }
+      ;
+        {
+          Y.six = 6
+        ;
+          X.theY.someField = 2 - X.theY.six - Y.nine
+        }
+      }
+    }
+THE_END

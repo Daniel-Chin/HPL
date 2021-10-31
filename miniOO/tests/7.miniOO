@@ -1,0 +1,16 @@
+var X;
+  var Ans;
+    {
+      {
+        Ans = 0
+      ;
+        X = 100
+      }
+    ;
+      while 0 < X {
+        Ans = Ans - X
+      ;
+        X = X - 1
+      }
+    }
+THE_END

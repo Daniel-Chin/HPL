@@ -1,7 +1,7 @@
-var X;
 {
   var X;
-  X = 5;
+    X = 5
+;
   X = 4
 }
 THE_END

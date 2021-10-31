@@ -1,0 +1,7 @@
+var P; 
+  {
+    P = proc Y : if Y < 1 P = 1 else P(Y - 1)
+  ;
+    P(1)
+  }
+THE_END
