@@ -731,12 +731,33 @@ let rec pprintVars heap = let helper (var_id, obj_id, var_idt) = (
 )
 ;;
 
+let interpret annotatedAst = 
+  let rec helper config = match config with
+  | Config(ast, stack, heap) -> (
+    print_string "Crank ";
+    helper (crank config)
+  )
+  | Halted(stack, heap) -> (
+    print_newline;
+    print_string "Halted. \n";
+    pprintVars heap stack
+  )
+  | ConfigError(msg, (ast, stack, heap)) -> (
+    print_newline;
+    print_string "ConfigError! \n";
+    pprintVars heap stack
+  )
+  in helper Config(annotatedAst, Stack([]), [])
+;;
+
 let lexbuf = Lexing.from_channel stdin in
 try
   while true do
     try
-      let theAst = MENHIR.prog LEX.token lexbuf in (
-        prettyPrint 0 (annotate emptyNamespace theAst)
+      let theAst = MENHIR.prog LEX.token lexbuf 
+      and annotatedAst = annotate emptyNamespace theAst in (
+        prettyPrint 0 annotatedAst;
+        interpret annotatedAst
       )
     with Parse_error ->
       (
