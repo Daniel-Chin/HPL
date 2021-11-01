@@ -1,11 +1,24 @@
 var X;
-  {
-    malloc(X)
-  ;
+  var Y;
     {
-      X.self = X
+      {
+        malloc(X)
+      ;
+        malloc(Y)
+      }
     ;
-      X.child = 666
+      {
+        Y.theX = X
+      ;
+        {
+          X.theY = Y
+        ;
+          {
+            X.six = 6
+          ;
+            Y.nine = 9
+          }
+        }
+      }
     }
-  }
 THE_END

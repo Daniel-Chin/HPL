@@ -1,3 +1,7 @@
 var X;
-  X.unallocatedField = 3
+  {
+    X = 7
+  ;
+    X.unallocatedField = 3
+  }
 THE_END

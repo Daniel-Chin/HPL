@@ -2,18 +2,42 @@ var X;
   var Y;
     {
       {
-        malloc(X)
+        {
+          malloc(X)
+        ;
+          X.this = X.that
+        }
       ;
-        X.this = X.that
+        {
+          if X.this == null X.ans = 1 else X.ans = 0
+        ;
+          {
+            Y = 3
+          ;
+            if Y < 1 X.arith = 0 else X.arith = Y
+          }
+        }
       }
     ;
       {
-        if X.this == null X.ans = 1 else X.ans = 0
+        {
+          X.procA = proc T : Y = 7
+        ;
+          X.procB = proc T : Y = 7
+        }
       ;
         {
-          Y = 3
+          X.procC = X.procA
         ;
-          if Y < 1 X.arith = 0 else X.arith = Y
+          {
+            if X.procA == X.procB 
+            X.closureDifferent = 0
+            else X.closureDifferent = 2333
+          ;
+            if X.procA == X.procC 
+            X.procIdentity = 2333 
+            else X.procIdentity = 0
+          }
         }
       }
     }

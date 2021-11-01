@@ -2,6 +2,10 @@ var X;
   {
     malloc(X)
   ;
-    X.null = 9
+    {
+      X.self = X
+    ;
+      X.child = 666
+    }
   }
 THE_END

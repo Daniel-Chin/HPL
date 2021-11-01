@@ -1,2 +1,7 @@
-1.field = 3
+var X;
+  {
+    malloc(X)
+  ;
+    X.null = 9
+  }
 THE_END
