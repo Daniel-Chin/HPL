@@ -18,7 +18,7 @@ let printVarAnnotation (VarAnnotation(name, id)) = (
 
 let rec prettyPrint depth = 
   let indent () = print_string (
-    String.make depth ' '
+    "~" ^ String.make depth ' '
   ) in function
     | DecVar(var_annotation, cmd) -> (
       indent ();
@@ -301,7 +301,7 @@ and taintedValue = | ValError | TaintMissed of value
 module AnObject = Map.Make(String);;
 type heapRow = 
 | JustVal of taintedValue
-| Everything of (taintedValue AnObject.t)
+| EveryField of (taintedValue AnObject.t)
 ;;
 type configuration = 
 | Config of (ast * stack * (heapRow list))
@@ -318,7 +318,7 @@ let heapGet heap obj_id field_idt =
   | JustVal(tva_) -> (
     if field_idt = "val" then tva_ else ValError
   )
-  | Everything(map) -> (
+  | EveryField(map) -> (
     match AnObject.find_opt field_idt map with
     | Some x -> x
     | None -> theNull
@@ -337,8 +337,8 @@ let rec helper obj_id_acc field_idt tva = (
           if field_idt = "val" then JustVal(tva) 
           else raise OutOfHeapDom
         )
-        | Everything(map) -> (
-          Everything(AnObject.add field_idt tva map)
+        | EveryField(map) -> (
+          EveryField(AnObject.add field_idt tva map)
         )
       ) else h
     ) :: (helper (obj_id_acc - 1) field_idt tva t)
@@ -348,7 +348,7 @@ let rec helper obj_id_acc field_idt tva = (
 
 let heapGrow heap is_malloc = (
   heap @ [
-    if is_malloc then Everything(AnObject.empty) 
+    if is_malloc then EveryField(AnObject.empty) 
     else JustVal(theNull)
   ]
 );;
@@ -705,7 +705,7 @@ let rec printHeap obj_id = function
       print_string "   val : ";
       printTva tVal
     )
-    | Everything(map) -> (
+    | EveryField(map) -> (
       AnObject.iter (fun key value -> (
         print_string "  ";
         print_string key;
@@ -721,7 +721,7 @@ let rec printHeap obj_id = function
 let rec pprintObj heap depth already obj_id = (
   match List.nth heap obj_id with
   | JustVal(tva_) -> printTva tva_
-  | Everything(map) -> (
+  | EveryField(map) -> (
     print_string "<obj @ ";
     print_int obj_id;
     print_string "> { \n";
@@ -840,7 +840,7 @@ with
   | LEX.Eof -> ()
   | UsingUndeclaredVariable(msg) -> raise (UsingUndeclaredVariable msg)
   | e -> (
-    print_string "Unknown error. Prabably parsing error? \n";
+    print_string "Unknown error. Probably parsing error? \n";
     print_string "lexbuf is at char # ";
     print_int lexbuf.lex_curr_pos;
     print_string "\n (Use ctrl+alt+G in VSCode to seek char pos.) \n";
