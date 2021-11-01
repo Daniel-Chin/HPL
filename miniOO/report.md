@@ -1,5 +1,4 @@
 Make a PPT. 
-fix test example 1 - 3
 
 Specialties:
     Var IDT starts with uppercase while Field IDT starts with lowercase. 
@@ -7,7 +6,6 @@ Specialties:
     no library importing
     ||| (parallelism) randomly swaps the two sub-controls for each transition. Decision is based on random bools from the OS. 
 maybe specialties:
-    `val` field is exposed to users of miniOO. 
     Parsing error
     ```
     Unknown error. Prabably parsing error?
