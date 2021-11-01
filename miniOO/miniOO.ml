@@ -22,7 +22,7 @@ let rec prettyPrintAST depth =
   ) in function
     | DecVar(var_annotation, cmd) -> (
       indent ();
-      print_string "declare var "; 
+      print_string "declare "; 
       printVarAnnotation var_annotation; 
       print_string " in \n"; 
       prettyPrintAST (depth + 1) cmd
@@ -831,7 +831,7 @@ try
     try
       let theAst = MENHIR.prog LEX.token lexbuf in
       let annotatedAst = annotate emptyNamespace theAst in (
-        print_string "---=== Annoteated AST ===--- \n\n";
+        print_string "---=== Annotated AST ===--- \n\n";
         prettyPrintAST 0 annotatedAst;
         print_newline ();
         print_string "---=== Go ===--- \n";
