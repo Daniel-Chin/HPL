@@ -1,6 +1,6 @@
 var R; var H; 
   {
-    H=1
+    H = 0 - 1
   ; 
     var P; 
       {
@@ -8,7 +8,7 @@ var R; var H;
       ; 
         var H; 
           {
-            H=2
+            H = 0 - 2
           ; 
             P(4)
           }
