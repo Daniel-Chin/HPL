@@ -416,9 +416,8 @@ let rec eval stack heap = (
   | _ -> ValError   (* Impossible *)
 );;
 
-let evalBool stack heap expr = 
-let helper = (
-  function 
+let evalBool stack heap expr = (
+  let helper = function 
   | LiteralBool(x) -> Some x
   | IsEqual(a, b) -> (
     let tva_a = eval stack heap a in
