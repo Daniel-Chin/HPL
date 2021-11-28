@@ -1,7 +1,7 @@
 (* File miniOO.ml *)
 
-let verbose = false;;
-(* let verbose = true;; *)
+(* let verbose = false;; *)
+let verbose = true;;
 
 open Parsing;;
 open Types;;

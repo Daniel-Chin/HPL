@@ -1,0 +1,8 @@
+Some surprising behaviors of Python. 
+    I thought I knew Python well --- but implementing miniPython made me come up with crazy edge cases. It turned out that Python itself handles those edge cases pretty wildly. e.g. whether a lexem "in" is a for loop keyword or a binary relation keyword seems to be undecided at parse time! 
+Some interesting differences between miniOO (which the class should be very familiar with by then) and Python 3, especially the variable scoping rules. 
+How Python does instantiation and inheritance; and a "Python object relation map" I summarized. (In Python, even a class is an object, so there is "class <class>" and "object object"...)
+The challenges of exposing built-in objects to the "user space", and how to "bootstrap" the definition of basic built-in concepts that, in the end, need to be available in the "user space". 
+The art of containing infinitely recursive definitions to run-time and avoid infinite recursion in definition-time. For example, `print. __call__ . __call__ . __call__ ...`
+How I did the implementation in a "big-step" way (Recursive evaluation of AST) in contrast with miniOO. 
+Exception promotion and handling; `break`, `return`, `continue` as exceptions; top-level exception traceback printing. These turned out to be very easy in the big-step implementation. 

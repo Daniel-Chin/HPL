@@ -1,0 +1,12 @@
+var F;
+  {
+    F = proc X : F = X
+  ;
+    {
+      var T;
+        skip
+    |||
+      F(3)
+    }
+  }
+THE_END

@@ -1,0 +1,37 @@
+Q3. 
+inl (filter l n) v = true
+
+l = v' :: l'
+
+inl (filter l' n) v = true
+=>
+v >= n
+
+inl (filter (v' :: l') n) v = true
+
+if v' >= n
+    inl (v' :: (filter l' n)) v = true
+    if v' == v
+        v >= n
+    if v' != v
+        inl (filter l' n) v = true
+        so, v >= n
+if v' < n
+    inl (filter l' n) v = true
+    so, v >= n
+
+Q4. 
+push; push; push; -; push; -; -
+
+Q5.
+let rec compile = function
+| One -> (
+    print_string("push")
+)
+| Minus(e1, e2) -> (
+    compile e1;
+    print_string(" ; ");
+    compile e2;
+    print_string(" ; -")
+)
+;;
